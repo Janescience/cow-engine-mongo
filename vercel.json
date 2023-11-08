@@ -1,0 +1,16 @@
+{
+    "version": 2,
+    "name": "cow-engine",
+    "builds": [
+      { "src": "server.js", "use": "@vercel/node" }
+    ],
+    "routes": [
+      { "src": "/(.*)", "dest": "/server.js" }
+    ],
+    "crons": [
+      {
+        "path": "/notification/job?key=dairy-farm-noti-to-line",
+        "schedule": "00 20 * * *"
+      }
+    ]
+  }

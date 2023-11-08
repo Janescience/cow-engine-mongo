@@ -1,0 +1,139 @@
+{
+    "swagger": "2.0",
+    "info": {
+      "version": "1.0.0",
+      "title": "Cow-Engine API Document",
+      "description": "Application API",
+      "license": {
+        "name": "MIT",
+        "url": "https://opensource.org/licenses/MIT"
+      }
+    },
+    "host": "localhost:4000",
+    "basePath": "/",
+    "tags": [
+      {
+        "name": "Auth",
+        "description": "API for authorize in the system"
+      },
+      {
+        "name": "Cow",
+        "description": "API for cow information and CRUD"
+      },
+      {
+        "name": "Birth",
+        "description": "API for cow birth information and CRUD"
+      },
+      {
+        "name": "Dashboard",
+        "description": "API for dashboard summary information"
+      },
+      {
+        "name": "Food",
+        "description": "API for cow food information and CRUD"
+      },
+      {
+        "name": "Heal",
+        "description": "API for cow heal information and CRUD"
+      },
+      {
+        "name": "Milk",
+        "description": "API for cow milking information and CRUD"
+      },
+      {
+        "name": "Protection",
+        "description": "API for cow protection information and CRUD"
+      },
+      {
+        "name": "Recipe",
+        "description": "API for cow food recipe information and CRUD"
+      },
+      {
+        "name": "Reproduction",
+        "description": "API for cow reproduction information and CRUD"
+      },
+      {
+        "name": "Report",
+        "description": "API for system report"
+      },
+      {
+        "name": "Notification",
+        "description": "API for notifaction from system to line, get noti logs"
+      },
+      {
+        "name": "Line",
+        "description": "API for line noti , get token , redirect from auth"
+      }
+    ],
+    "paths": {
+        "/auth/signin": {
+            "post": {
+                "tags": ["Auth"],
+                "summary": "Login",
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "body",
+                        "description": "User that we want to create",
+                        "schema": {
+                            "$ref": "#/definitions/User"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                    "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Signin"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/sigup": {
+            "post": {
+                "tags": ["Auth"],
+                "summary": "Register",
+                "responses": {
+                    "200": {
+                    "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Signup"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/user": {
+            "get": {
+                "tags": ["Auth"],
+                "summary": "User data",
+                "responses": {
+                    "200": {
+                    "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/User"
+                        }
+                    }
+                }
+            }
+        },
+        "/line/notify": {
+            "post": {
+                "tags": ["Line Notify"],
+                "summary": "Notification",
+                "responses": {
+                    "200": {
+                    "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Notify"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "schemes": ["http"],
+    "consumes": ["application/json"],
+    "produces": ["application/json"]
+  }
