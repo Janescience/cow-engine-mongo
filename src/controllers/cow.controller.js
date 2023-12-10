@@ -92,7 +92,7 @@ exports.upload = async (req,res) => {
 
   const cow = await Cow.findById(id).exec();
 
-  if(cow.image){
+  if(cow.image && cow.image.indexOf('https') >= 0){
     await del(cow.image);
   }
 
