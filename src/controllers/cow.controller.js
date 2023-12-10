@@ -2,8 +2,11 @@ const db = require("../models");
 const Cow = db.cow;
 const MilkDetail = db.milkDetail;
 
+const { put,del } = require('@vercel/blob');
 const { cowService } = require("../services");
 
+const dotenv = require('dotenv');
+dotenv.config();
 exports.getAll = async (req, res) => {
     const filter = req.query
     filter.farm = req.farmId
@@ -33,7 +36,7 @@ exports.getAllDDL = async (req, res) => {
 
 exports.get = async (req, res) => {
     const id = req.params.id
-    const cow = await Cow.findById(id).exec();;
+    const cow = await Cow.findById(id).exec();
     const quality = await cowService.quality(id);
     res.status(200).send({cow,quality});
 };
@@ -59,6 +62,7 @@ exports.getDetails = async (req, res) => {
 exports.create = async (req, res) => {
     const data = req.body;
     data.farm = req.farmId;
+    delete data.image
     const newCow = new Cow(data);
     await newCow.save();
     res.status(200).send({newCow});
@@ -67,9 +71,35 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
     const id = req.params.id;
     const data = req.body;
+    delete data.image
     const updatedCow = await Cow.updateOne({_id:id},data).exec();
     res.status(200).send({updatedCow});
 };
+
+exports.upload = async (req,res) => {
+  const id = req.params.id;
+
+  if (!req.files) {
+    return res.status(500).send({ msg: "file is not found" })
+  }
+
+  const myFile = req.files.file;
+  const blob = await put(myFile.name, myFile.data, {
+    contentType : myFile.mimetype,
+    access: 'public',
+    token : process.env.BLOB_READ_WRITE_TOKEN
+  });
+
+  const cow = await Cow.findById(id).exec();
+
+  if(cow.image){
+    await del(cow.image);
+  }
+
+  await Cow.updateOne({_id:id},{image:blob.url}).exec();
+
+  res.status(200).send({blob});
+}
 
 exports.delete = async (req, res) => {
     const id = req.params.id;

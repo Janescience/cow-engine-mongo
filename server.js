@@ -1,4 +1,6 @@
 const express = require('express');
+const expressFileupload = require('express-fileupload');
+const multer = require('multer');
 const cors = require("cors")
 const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
@@ -8,6 +10,7 @@ const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerDocument = require('./swagger.json');
 
 const path = require('path');
+const fs = require('fs')
 
 const { logger } = require('./src/middlewares/log-events');
 const errorHandler  = require('./src/middlewares/error-handler');
@@ -25,6 +28,19 @@ const app = express();
 
  // Use Middlewares 
 app.use(logger);
+app.use(expressFileupload())
+
+// var storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, './uploads')
+//   },
+//   filename: function (req, file, cb) {
+//     cb(null, file.originalname)
+//   }
+// })
+// app.use(
+//   multer({ storage: storage }).any()
+// );
 
 const whitelist = ['https://cow-app.vercel.app','https://www.dairyfarm.online','http://localhost:5173','http://localhost:4000'];
 const corsOption = {
