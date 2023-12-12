@@ -3,7 +3,7 @@ const Cow = db.cow;
 const MilkDetail = db.milkDetail;
 
 const { put,del } = require('@vercel/blob');
-const { cowService } = require("../services");
+const { cowService,notiService } = require("../services");
 
 const dotenv = require('dotenv');
 dotenv.config();
@@ -106,3 +106,27 @@ exports.delete = async (req, res) => {
     const deletedCow = await Cow.deleteOne({_id:id});
     res.status(200).send({deletedCow});
 };
+
+exports.calGrade = async () => {
+  let cowError;
+  console.log('=======> Start schedule calculate cow grade <=======')
+  console.log('-------> ' + new Date() + ' <-------')
+  try{
+
+    const cows = await Cow.find({flag:'Y'}).exec();
+    console.log('Cows Flag Y Size : ',cows.length)
+
+    for(let cow of cows){
+      cowError = cow
+      const result = await cowService.quality(cow._id);
+      await Cow.updateOne({_id:cow._id},{grade:result.grade}).exec();
+    }
+
+    console.log('-------x ' + new Date() + ' x-------')
+    console.log('=======x End schedule calculate cow grade x=======')
+  } catch (error) {
+      console.error('Job Cal Grade Error : ',error)
+      await notiService.saveLog('Job Cal Grade Error', 'B', 'F', error+"", null, [cowError._id]);
+      return;
+  }
+}

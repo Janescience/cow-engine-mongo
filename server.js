@@ -22,7 +22,7 @@ dotenv.config();
 require('./src/config/conn');
 // require('./src/config/conn.memory');
 // require('./src/schedule/notify-cron');
-
+require('./cron-jobs.js');
  // Initialize Express App 
 const app = express();
 
@@ -108,7 +108,7 @@ app.all("*", (req,res) => {
 app.use(errorHandler)
 
 app.listen(process.env.PORT, () => {
-    // console.log("Server is running on port : ",process.env.PORT);
+    console.log("Server is running on port : ",process.env.PORT);
 })
 
 

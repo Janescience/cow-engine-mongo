@@ -54,6 +54,9 @@ const Cow = mongoose.model(
         remark : {
             type : String
         },
+        grade : {
+            type : String
+        },
         farm:{
             type: mongoose.Schema.Types.ObjectId,
             ref: "farm",
