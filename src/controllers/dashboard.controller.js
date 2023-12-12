@@ -52,16 +52,16 @@ exports.quality = async (req,res) => {
     const cows = await Cow.find(filter).exec();
     const quality = {aplus:0,a:0,b:0,c:0,d:0}
     for(let cow of cows){
-        const cowQuality = await cowService.quality(cow._id);
-        if(cowQuality.grade === 'A+'){
+        // const cowQuality = await cowService.quality(cow._id);
+        if(cow.grade === 'A+'){
             quality.aplus++
-        }else if(cowQuality.grade === 'A'){
+        }else if(cow.grade === 'A'){
             quality.a++
-        }else if(cowQuality.grade === 'B'){
+        }else if(cow.grade === 'B'){
             quality.b++
-        }else if(cowQuality.grade === 'C'){
+        }else if(cow.grade === 'C'){
             quality.c++
-        }else if(cowQuality.grade === 'D'){
+        }else if(cow.grade === 'D'){
             quality.d++
         }
     }
