@@ -35,6 +35,9 @@ const Birth = mongoose.model(
             type:Date,
             required:false
         },
+        gestAge:{
+            type:String,
+        },
         reproduction : {
             type: mongoose.Schema.Types.ObjectId,
             ref: "reproduction",
