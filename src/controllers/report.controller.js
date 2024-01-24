@@ -5,15 +5,18 @@ const Promise = require('bluebird');
 const Cow = db.cow;
 const Milk = db.milk;
 const MilkDetail = db.milkDetail;
+const Reproduction = db.reproduction;
 const Heal = db.heal;
 const Food = db.food;
 const Protection = db.protection;
 const Salary = db.salary;
+const Birth = db.birth;
 const _ = require('lodash');
 const moment = require('moment');
 const { format } = require('date-fns');
 const { calAge } = require('../utils/age-calculate');
 const { status,quality } = require('../constants/cow');
+const { repoStatus,repoResult } = require('../constants/reproduct');
 const cowService = require('../services/cow.service');
 
 exports.getCowAll = async (req, res) => {
@@ -43,8 +46,8 @@ exports.getCowAll = async (req, res) => {
       { header: 'ลำดับที่', key: 'no', width: 10 },
       { header: 'รหัส', key: 'code', width: 10 },
       { header: 'ชื่อ', key: 'name', width: 10 },
-      { header: 'วันเกิด', key: 'birthDate', width: 10  ,style: { numFmt: 'dd/mm/yyyy' } },
-      { header: 'วันที่นำมาเลี้ยง', key: 'adopDate', width: 10  ,style: { numFmt: 'dd/mm/yyyy' } },
+      { header: 'วันเกิด', key: 'birthDate', width: 15  ,style: { numFmt: 'dd/mm/yyyy' } },
+      { header: 'วันที่นำมาเลี้ยง', key: 'adopDate', width: 15  ,style: { numFmt: 'dd/mm/yyyy' } },
       { header: 'น้ำหนัก', key: 'weight', width: 10 },
       { header: 'อายุ', key: 'age', width: 10 },
       { header: 'คอก', key: 'corral', width: 10 },
@@ -74,6 +77,71 @@ exports.getCowAll = async (req, res) => {
     return workbook.xlsx.write(res).then(function () {
       res.status(200).end();
     });
+};
+
+exports.reproduction = async (req, res) => {
+  const filter = req.query
+  filter.farm = req.farmId
+  const repos = await Reproduction.find(filter).populate('cow').sort({"loginDate":1,"estrusDate":1,'matingDate':1,'checkDate':1}).exec();
+
+  for(let repo of repos){
+    repo['resultDesc'] = repoResult().find(x => x.id === repo.result).label
+    repo['statusDesc'] = repoStatus().find(x => x.id === repo.status).label
+    repo['code'] = repo.cow.code
+    repo['name'] = repo.cow.name
+
+    if(repo.status == 3  || repo.status == 2){
+      const birth = await Birth.findOne({reproduction:repo._id,cow:repo.cow._id}).populate('calf').exec();
+      if(birth){
+        repo['pregnantDate'] = birth.pregnantDate;
+        repo['sexDesc'] = birth.sex == 'M' ? 'เพศผู้' : ( birth.sex == 'F' ? 'เพศเมีย' : '');
+        repo['birthDate'] = birth.birthDate;
+        repo['overgrownDesc'] = birth.overgrown == null || birth.overgrown == 'N' ? 'ไม่ค้าง' : 'ค้าง';
+        repo['drugDate'] = birth.drugDate;
+        repo['washDate'] = birth.washDate;
+        repo['gestAgeDesc'] = birth.gestAge == null ? calAge(birth.pregnantDate) : calAge(birth.pregnantDate,birth.birthDate) ;
+        repo['calfCode'] = birth?.calf?.code;
+        repo['calfName'] = birth?.calf?.name;
+      }
+    }
+  }
+
+  const workbook = new Excel.Workbook();
+  const sheet = workbook.addWorksheet('ข้อมูลการสืบพันธู์');
+
+  sheet.columns = [
+    { header: 'วันที่เข้าระบบสืบพันธุ์', key: 'loginDate', width: 12  ,style: { numFmt: 'dd/mm/yyyy' } },
+    { header: 'ครั้งที่', key: 'seq', width: 10 },
+    { header: 'รหัสโค', key: 'code', width: 10 },
+    { header: 'ชื่อโค', key: 'name', width: 10 },
+    { header: 'พ่อพันธุ์', key: 'dad', width: 10 },
+    { header: 'ผล', key: 'resultDesc', width: 10 },
+    { header: 'สถานะ', key: 'statusDesc', width: 20 },
+    { header: 'การรักษา', key: 'howTo', width: 20 },
+    { header: 'วันที่เป็นสัด', key: 'estrusDate', width: 12  ,style: { numFmt: 'dd/mm/yyyy' } },
+    { header: 'วันที่ผสมพันธุ์', key: 'matingDate', width: 12  ,style: { numFmt: 'dd/mm/yyyy' } },
+    { header: 'วันที่ตรวจท้อง', key: 'checkDate', width: 12  ,style: { numFmt: 'dd/mm/yyyy' } },
+    { header: 'วันที่ตั้งครรภ์', key: 'pregnantDate', width: 12  ,style: { numFmt: 'dd/mm/yyyy' } },
+    { header: 'เพศ', key: 'sexDesc', width: 12  },
+    { header: 'วันที่คลอด', key: 'birthDate', width: 12 ,style: { numFmt: 'dd/mm/yyyy' }  },
+    { header: 'รกค้าง', key: 'overgrownDesc', width: 12  },
+    { header: 'วันที่ใช้ยาขับ', key: 'drugDate', width: 12  ,style: { numFmt: 'dd/mm/yyyy' }  },
+    { header: 'วันที่ล้างมดลูก', key: 'washDate', width: 12  ,style: { numFmt: 'dd/mm/yyyy' }  },
+    { header: 'อายุครรภ์', key: 'gestAgeDesc', width: 12  },
+    { header: 'รหัสลูกวัว', key: 'calfCode', width: 10  },
+    { header: 'ชื่อลูกวัว', key: 'calfName', width: 10  },
+  ];
+  
+  const repoOrdered = _.orderBy(repos,['loginDate','estrusDate','matingDate','checkDate'])
+
+  sheet.addRows(repoOrdered);
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader("Content-Disposition", "attachment; filename=reproductions.xlsx");
+
+  return workbook.xlsx.write(res).then(function () {
+    res.status(200).end();
+  });
 };
 
 
