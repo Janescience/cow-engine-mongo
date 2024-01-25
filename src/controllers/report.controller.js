@@ -5,19 +5,17 @@ const Promise = require('bluebird');
 const Cow = db.cow;
 const Milk = db.milk;
 const MilkDetail = db.milkDetail;
-const Reproduction = db.reproduction;
 const Heal = db.heal;
 const Food = db.food;
 const Protection = db.protection;
 const Salary = db.salary;
-const Birth = db.birth;
+
 const _ = require('lodash');
 const moment = require('moment');
 const { format } = require('date-fns');
 const { calAge } = require('../utils/age-calculate');
 const { status,quality } = require('../constants/cow');
-const { repoStatus,repoResult } = require('../constants/reproduct');
-const cowService = require('../services/cow.service');
+const { cowService,reportService } = require('../services');
 
 exports.getCowAll = async (req, res) => {
     const filter = req.query
@@ -79,33 +77,9 @@ exports.getCowAll = async (req, res) => {
     });
 };
 
-exports.reproduction = async (req, res) => {
-  const filter = req.query
-  filter.farm = req.farmId
-  const repos = await Reproduction.find(filter).populate('cow').sort({"loginDate":1,"estrusDate":1,'matingDate':1,'checkDate':1}).exec();
-
-  for(let repo of repos){
-    repo['resultDesc'] = repoResult().find(x => x.id === repo.result).label
-    repo['statusDesc'] = repoStatus().find(x => x.id === repo.status).label
-    repo['code'] = repo.cow.code
-    repo['name'] = repo.cow.name
-
-    if(repo.status == 3  || repo.status == 2){
-      const birth = await Birth.findOne({reproduction:repo._id,cow:repo.cow._id}).populate('calf').exec();
-      if(birth){
-        repo['pregnantDate'] = birth.pregnantDate;
-        repo['sexDesc'] = birth.sex == 'M' ? 'เพศผู้' : ( birth.sex == 'F' ? 'เพศเมีย' : '');
-        repo['birthDate'] = birth.birthDate;
-        repo['overgrownDesc'] = birth.overgrown == null || birth.overgrown == 'N' ? 'ไม่ค้าง' : 'ค้าง';
-        repo['drugDate'] = birth.drugDate;
-        repo['washDate'] = birth.washDate;
-        repo['gestAgeDesc'] = birth.gestAge == null ? calAge(birth.pregnantDate) : calAge(birth.pregnantDate,birth.birthDate) ;
-        repo['calfCode'] = birth?.calf?.code;
-        repo['calfName'] = birth?.calf?.name;
-      }
-    }
-  }
-
+exports.reproductExport = async (req, res) => {
+  const repos = await reportService.mapReproduct(req);
+  
   const workbook = new Excel.Workbook();
   const sheet = workbook.addWorksheet('ข้อมูลการสืบพันธู์');
 
@@ -115,19 +89,19 @@ exports.reproduction = async (req, res) => {
     { header: 'รหัสโค', key: 'code', width: 10 },
     { header: 'ชื่อโค', key: 'name', width: 10 },
     { header: 'พ่อพันธุ์', key: 'dad', width: 10 },
-    { header: 'ผล', key: 'resultDesc', width: 10 },
-    { header: 'สถานะ', key: 'statusDesc', width: 20 },
+    { header: 'ผล', key: 'result', width: 10 },
+    { header: 'สถานะ', key: 'status', width: 20 },
     { header: 'การรักษา', key: 'howTo', width: 20 },
     { header: 'วันที่เป็นสัด', key: 'estrusDate', width: 12  ,style: { numFmt: 'dd/mm/yyyy' } },
     { header: 'วันที่ผสมพันธุ์', key: 'matingDate', width: 12  ,style: { numFmt: 'dd/mm/yyyy' } },
     { header: 'วันที่ตรวจท้อง', key: 'checkDate', width: 12  ,style: { numFmt: 'dd/mm/yyyy' } },
     { header: 'วันที่ตั้งครรภ์', key: 'pregnantDate', width: 12  ,style: { numFmt: 'dd/mm/yyyy' } },
-    { header: 'เพศ', key: 'sexDesc', width: 12  },
+    { header: 'เพศ', key: 'sex', width: 12  },
     { header: 'วันที่คลอด', key: 'birthDate', width: 12 ,style: { numFmt: 'dd/mm/yyyy' }  },
-    { header: 'รกค้าง', key: 'overgrownDesc', width: 12  },
+    { header: 'รกค้าง', key: 'overgrown', width: 12  },
     { header: 'วันที่ใช้ยาขับ', key: 'drugDate', width: 12  ,style: { numFmt: 'dd/mm/yyyy' }  },
     { header: 'วันที่ล้างมดลูก', key: 'washDate', width: 12  ,style: { numFmt: 'dd/mm/yyyy' }  },
-    { header: 'อายุครรภ์', key: 'gestAgeDesc', width: 12  },
+    { header: 'อายุครรภ์', key: 'gestAge', width: 12  },
     { header: 'รหัสลูกวัว', key: 'calfCode', width: 10  },
     { header: 'ชื่อลูกวัว', key: 'calfName', width: 10  },
   ];
@@ -144,7 +118,10 @@ exports.reproduction = async (req, res) => {
   });
 };
 
-
+exports.reproductView = async (req, res) => {
+  const reproducts = await reportService.mapReproduct(req);
+  res.status(200).send({reproducts});
+}
 
 exports.getRawMilk = async (req, res) => {
   const filter = req.query;
