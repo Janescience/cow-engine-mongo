@@ -4,7 +4,7 @@ const Promise = require('bluebird');
 
 const Cow = db.cow;
 const Milk = db.milk;
-const MilkDetail = db.milkDetail;
+
 const Heal = db.heal;
 const Food = db.food;
 const Protection = db.protection;
@@ -13,29 +13,11 @@ const Salary = db.salary;
 const _ = require('lodash');
 const moment = require('moment');
 const { format } = require('date-fns');
-const { calAge } = require('../utils/age-calculate');
-const { status,quality } = require('../constants/cow');
-const { cowService,reportService } = require('../services');
 
-exports.getCowAll = async (req, res) => {
-    const filter = req.query
-    filter.farm = req.farmId
-    const cows = await Cow.find(filter).exec();
+const { reportService } = require('../services');
 
-    for(let cow of cows){
-      cow['age'] = calAge(cow.birthDate)
-      cow['qualityDesc'] = quality().find(x => x.id === cow.quality).label
-      cow['statusDesc'] = status().find(x => x.id === cow.status).label
-      cow['flagDesc'] = (cow.flag === 'Y' ? 'ใช้งาน' : 'ไม่ใช้งาน')
-
-      filter.cow = cow._id
-      const milks = await MilkDetail.find(filter).exec();
-      cow['milkSum'] = milks.reduce((sum,milk) => sum + milk.qty,0)
-      cow['milkAvg'] = milks.length > 0 ? cow['milkSum']/milks.length : 0
-
-      const level = await cowService.quality(cow._id)
-      cow['level'] = level.grade + ' (' + level.description + ')'
-    }
+exports.cowExport = async (req, res) => {
+  const cows = await reportService.mapCow(req);
 
     const workbook = new Excel.Workbook();
     const sheet = workbook.addWorksheet('ข้อมูลโค');
@@ -49,14 +31,14 @@ exports.getCowAll = async (req, res) => {
       { header: 'น้ำหนัก', key: 'weight', width: 10 },
       { header: 'อายุ', key: 'age', width: 10 },
       { header: 'คอก', key: 'corral', width: 10 },
-      { header: 'สถานะ', key: 'statusDesc', width: 10 },
+      { header: 'สถานะ', key: 'status', width: 10 },
       { header: 'พ่อพันธู์', key: 'dad', width: 20 },
       { header: 'แม่พันธุ์', key: 'mom', width: 20 },
       { header: 'น้ำนมเฉลี่ย/วัน', key: 'milkAvg', width: 20 },
       { header: 'น้ำนมทั้งหมด', key: 'milkSum', width: 20 },
-      { header: 'คุณภาพนม', key: 'qualityDesc', width: 10 },
+      { header: 'คุณภาพนม', key: 'quality', width: 10 },
       { header: 'ความคุ้มค่า', key: 'level', width: 10 },
-      { header: 'FLAG', key: 'flagDesc', width: 10 },
+      { header: 'FLAG', key: 'flag', width: 10 },
       { header: 'หมายเหตุ', key: 'remark', width: 20 },
     ];
 
@@ -76,6 +58,12 @@ exports.getCowAll = async (req, res) => {
       res.status(200).end();
     });
 };
+
+exports.cowView = async (req, res) => {
+  const cows = await reportService.mapCow(req);
+  const cowsOrdered = _.orderBy(cows,['corral','code'])
+  res.status(200).send({cows:cowsOrdered});
+}
 
 exports.reproductExport = async (req, res) => {
   const repos = await reportService.mapReproduct(req);
@@ -106,7 +94,7 @@ exports.reproductExport = async (req, res) => {
     { header: 'ชื่อลูกวัว', key: 'calfName', width: 10  },
   ];
   
-  const repoOrdered = _.orderBy(repos,['loginDate','estrusDate','matingDate','checkDate'])
+  const repoOrdered = _.orderBy(repos,['code','seq','loginDate'])
 
   sheet.addRows(repoOrdered);
 
@@ -120,7 +108,43 @@ exports.reproductExport = async (req, res) => {
 
 exports.reproductView = async (req, res) => {
   const reproducts = await reportService.mapReproduct(req);
-  res.status(200).send({reproducts});
+  const repoOrdered = _.orderBy(reproducts,['code','seq'])
+  res.status(200).send({reproducts:repoOrdered});
+}
+
+exports.healExport = async (req, res) => {
+  const heals = await reportService.mapHeal(req);
+  
+  const workbook = new Excel.Workbook();
+  const sheet = workbook.addWorksheet('ข้อมูลการรักษา');
+
+  sheet.columns = [
+    { header: 'รหัสโค', key: 'code', width: 10 },
+    { header: 'ชื่อโค', key: 'name', width: 10 },
+    { header: 'ครั้งที่', key: 'seq', width: 10 },
+    { header: 'วันที่รักษา', key: 'date', width: 12  ,style: { numFmt: 'dd/mm/yyyy' } },
+    { header: 'อาการ/โรค', key: 'disease', width: 10 },
+    { header: 'การรักษา', key: 'method', width: 10 },
+    { header: 'ค่ารักษา', key: 'amount', width: 10 },
+    { header: 'ผู้รักษา', key: 'healer', width: 20 },
+  ];
+  
+  const healOrdered = _.orderBy(heals,['code','seq'])
+
+  sheet.addRows(healOrdered);
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader("Content-Disposition", "attachment; filename=heals.xlsx");
+
+  return workbook.xlsx.write(res).then(function () {
+    res.status(200).end();
+  });
+};
+
+exports.healView = async (req, res) => {
+  const heals = await reportService.mapHeal(req);
+  const healOrdered = _.orderBy(heals,['code','seq'])
+  res.status(200).send({heals:healOrdered});
 }
 
 exports.getRawMilk = async (req, res) => {
