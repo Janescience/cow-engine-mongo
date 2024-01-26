@@ -26,7 +26,12 @@ exports.create = async (req, res) => {
     const newVaccine = new Vaccine(data);
     await newVaccine.save()
 
-    const newNotiParam = new NotiParam({code:data.code,name:data.name,farm:data.farm});
+    const newNotiParam = new NotiParam({
+        code:data.code,
+        name:data.name,
+        beforeType : 'D',
+        before : 7,
+        farm:data.farm});
     await newNotiParam.save()
 
     res.status(200).send({newVaccine});
@@ -35,8 +40,8 @@ exports.create = async (req, res) => {
 exports.update = async (req, res) => {
     const id = req.params.id;
     const data = req.body;
-    const updatedProtection = await Protection.updateOne({_id:id},data).exec();
-    res.status(200).send({updatedProtection});
+    const updatedVaccine = await Vaccine.updateOne({_id:id},data).exec();
+    res.status(200).send({updatedVaccine});
 };
 
 exports.delete = async (req, res) => {

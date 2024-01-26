@@ -51,7 +51,7 @@ exports.create = async (req, res) => {
     const protectionNext = new Protection(data);
     await protectionNext.save();
 
-    const notiParam = await NotificationParam.findOne({code:vaccine.code}).exec();
+    const notiParam = await NotificationParam.findOne({code:vaccine.code,farm:req.farmId}).exec();
     if(notiParam != null){
         const noti = new Notification(
             {
