@@ -68,16 +68,35 @@ exports.create = async (req, res) => {
     res.status(200).send({protectionCurrent});
 };
 
+exports.confirm = async (req, res) => {
+    const id = req.params.id;
+    const data = req.body;
+    const updatedProtection = await Protection.updateOne({_id:id},data).exec();
+
+    const count = await Protection.find({vaccine:data.vaccine._id,farm:data.farm}).countDocuments().exec();
+    data.seq = (count+1)
+
+    const currentDate = data.date
+    const nextDate =  moment(data.date).add(data.vaccine.frequency,'months')
+
+    //Next
+    data.date = nextDate
+    delete data._id; // deletes the property
+    const protectionNext = new Protection(data);
+    await protectionNext.save();
+
+    await Vaccine.updateOne({_id:data.vaccine._id},{
+        currentDate:currentDate,
+        nextDate:nextDate
+    })
+    
+    res.status(200).send({updatedProtection});
+};
+
 exports.update = async (req, res) => {
     const id = req.params.id;
     const data = req.body;
     const updatedProtection = await Protection.updateOne({_id:id},data).exec();
-    const protections = await Protection.find({vaccine:data.vaccine._id}).populate('vaccine').sort({date:-1}).exec();
-    if(protections.length > 0){
-        await Vaccine.updateOne({_id:data.vaccine._id},{
-            currentDate:protections[0].date,
-            nextDate:moment(protections[0].date).add(protections[0].vaccine.frequency,'months')})
-    }
     res.status(200).send({updatedProtection});
 };
 
