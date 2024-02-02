@@ -89,6 +89,20 @@ exports.confirm = async (req, res) => {
         currentDate:currentDate,
         nextDate:nextDate
     })
+
+    const notiParam = await NotificationParam.findOne({code:data.vaccine.code,farm:req.farmId}).exec();
+    if(notiParam != null){
+        const noti = new Notification(
+            {
+                farm:req.farmId,
+                notificationParam:notiParam._id,
+                statusBefore : 'W',
+                statusAfter : 'N',
+                dataId : protectionNext._id 
+            }
+        );
+        await noti.save();
+    }
     
     res.status(200).send({updatedProtection});
 };
