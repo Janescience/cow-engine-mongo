@@ -7,6 +7,7 @@ const { cowService,notiService } = require("../services");
 
 const dotenv = require('dotenv');
 dotenv.config();
+
 exports.getAll = async (req, res) => {
     const filter = req.query
     filter.farm = req.farmId

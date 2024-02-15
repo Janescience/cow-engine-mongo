@@ -9,7 +9,7 @@
     ],
     "crons": [
       {
-        "path": "/notification/job?key=dairy-farm-noti-to-line",
+        "path": "/job?key=dairy-farm-job",
         "schedule": "00 20 * * *"
       }
     ]

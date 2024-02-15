@@ -88,6 +88,7 @@ require('./src/routes/building.routes')(app);
 require('./src/routes/maintenance.routes')(app);
 require('./src/routes/bill.routes')(app);
 require('./src/routes/salary.routes')(app);
+require('./src/routes/job.routes')(app);
 
 // basic route
 app.get(["/","/index.html"],(req,res) => {
