@@ -6,11 +6,5 @@
     ],
     "routes": [
       { "src": "/(.*)", "dest": "/server.js" }
-    ],
-    "crons": [
-      {
-        "path": "/job?key=dairy-farm-job",
-        "schedule": "00 20 * * *"
-      }
     ]
   }
