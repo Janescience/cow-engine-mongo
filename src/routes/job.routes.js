@@ -11,7 +11,9 @@ module.exports = function(app) {
     next();
   });
 
-  app.get("/job",[logger],controller.jobSchedule);
+  app.get("/job/notify",[logger],controller.jobNotify);
+  app.get("/job/grade",[logger],controller.jobCalGrade);
+  app.get("/job",[logger],controller.jobAll);
 };
 
 
