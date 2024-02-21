@@ -15,7 +15,7 @@ const Birth = mongoose.model(
             type:String,
             required:false
         },
-        status:{//B:Born, P:Pregnant
+        status:{//B:Born, P:Pregnant, A:Abort
             type:String,
             required:true
         },

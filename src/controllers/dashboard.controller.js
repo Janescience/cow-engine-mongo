@@ -72,6 +72,7 @@ exports.milks = async (req,res) => {
     const filter = req.query
     filter.farm = req.farmId
 
+    //Last Year
     let year = new Date().getFullYear();
 
     let start = new Date(year,0,1)
@@ -82,14 +83,21 @@ exports.milks = async (req,res) => {
     const endOffset = end.getTimezoneOffset();
     let endDate = new Date(end.getTime() - (endOffset*60*1000))
 
-    const milks = await Milk.find(
+    const milkLast = await Milk.find(
         {   
             date : { $gte : startDate.toISOString().split('T')[0] , $lte : endDate.toISOString().split('T')[0] },
             farm : filter.farm
         }
     ).populate('milkDetails');
 
-    res.json(milks);
+    //All Years
+    const milkAll = await Milk.find(
+        {   
+            farm : filter.farm
+        }
+    ).populate('milkDetails');
+
+    res.json({last:milkLast,all:milkAll});
 }
 
 
@@ -352,6 +360,7 @@ exports.statistics = async (req,res) => {
     filter.sex = null
     const pregnants = await Birth.find(filter).exec();
     pregnant.count = pregnants.length
+    pregnant.abort = pregnants.filter(p => p.status === 'A').length
     for(let pregnant of pregnants){
         
         const diffMonths = new Date().getMonth() - new Date(pregnant.pregnantDate).getMonth() + 

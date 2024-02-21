@@ -57,7 +57,6 @@ exports.create = async (req, res) => {
         const birth = await Birth.findById(id).exec();
         if(birth.calf){
             await Cow.deleteOne({_id:birth.calf});
-            // console.log("Cow deleted becuase update sex = male.");
         }
         data.birthDate = null
         data.sex = null
@@ -66,7 +65,6 @@ exports.create = async (req, res) => {
 
     const updatedBirth = await Birth.updateOne({_id:id},data).exec();
     await Reproduct.updateOne({_id:data.reproduction},{status:3}); // ปรับสถานะ คลอดลูกแล้ว
-    // console.log("Reproduction status = 3 updated.");
 
     res.status(200).send({updatedBirth});
 };
@@ -79,7 +77,6 @@ exports.update = async (req, res) => {
         const birth = await Birth.findById(id).exec();
         if(birth.calf){
             await Cow.deleteOne({_id:birth.calf});
-            // console.log("Cow deleted becuase update sex = male.");
         }
         data.birthDate = null
         data.sex = null
@@ -87,7 +84,6 @@ exports.update = async (req, res) => {
     }
 
     const updatedBirth = await Birth.updateOne({_id:id},data).exec();
-    // console.log("Birth updated");
 
     res.status(200).send({updatedBirth});
 };
