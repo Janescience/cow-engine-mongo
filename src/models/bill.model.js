@@ -14,8 +14,12 @@ const Bill = mongoose.model(
             type:String,
             required:true
         },
-        date:{
-            type:Date,
+        month:{
+            type:Number,
+            required:true
+        },
+        year:{
+            type:Number,
             required:true
         },
         amount:{

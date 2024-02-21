@@ -540,7 +540,7 @@ exports.todolist = async (req,res) => {
         let iRecipe = [];
         iRecipe.push(
             {
-                text : 'บันทึกค่าใช้จ่ายเพิ่มเติม (ค่าน้ำ,ค่าไฟ)',
+                text : 'บันทึกค่าใช้จ่ายเพิ่มเติม (ค่าน้ำ, ค่าไฟ, ค่าที่พักคนงาน, ค่าเช่า, ค่าอินเทอร์เน็ต, ค่าของเสีย ฯ)',
                 href : '/manage/bill'
             },
             {
@@ -551,34 +551,41 @@ exports.todolist = async (req,res) => {
         important.iRecipe = iRecipe
     }
 
-    let start = new Date(year,month-1,1)
-    const startOffset = start.getTimezoneOffset();
-    let startDate = new Date(start.getTime() - (startOffset*60*1000))
-
-    const daysInPrevMonth = moment().month(month - 1).daysInMonth();
-    let end = new Date(year, month-1, daysInPrevMonth);
-    const endOffset = end.getTimezoneOffset();
-    let endDate = new Date(end.getTime() - (endOffset*60*1000))
-
-    const billWaterPrevMonth = await Bill.find(
+    let monthly = {}
+    const billWaters = await Bill.find(
         {   
-            date : { $gte : startDate.toISOString().split('T')[0] , $lte : endDate.toISOString().split('T')[0] },
+            month : { $lte : month-1 },
+            year : year,
             farm : filter.farm,
             code: 'WATER'
         }
     );
 
-    const billElectricPrevMonth = await Bill.find(
+    const billElectrics = await Bill.find(
         {   
-            date : { $gte : startDate.toISOString().split('T')[0] , $lte : endDate.toISOString().split('T')[0] },
+            month : { $lte : month-1 },
+            year : year,
             farm : filter.farm,
             code: 'ELECTRIC'
         }
     );
-    const prevDate = moment().month(moment().month()-1)
+    
+    const prevDate = moment().month(moment().month()-1);
 
-    let monthly = {}
-    if(billWaterPrevMonth.length === 0){
+    let prevMonthWaterNums = []
+    let prevMonthElecNums = []
+    let prevMonthStrs = []
+    let prevMonthNums = []
+    for(let i = 1;i <= (month-1) ;i++ ){
+        let prevMonth = moment().month(moment().month()-i);
+        let monthStr = prevMonth.format('MMMM');
+        prevMonthNums.push(i)
+        prevMonthStrs.push(monthStr)
+        prevMonthWaterNums.push(monthStr)
+        prevMonthElecNums.push(monthStr)
+    }
+
+    if(billWaters.length === 0){
         let mWaterBill = [];
         mWaterBill.push(
             {
@@ -586,13 +593,41 @@ exports.todolist = async (req,res) => {
                 href : '/manage/bill'
             },
             {
-                text:' ('+prevDate.format('MMMM')+') '
+                text:' ('+prevMonthStrs.join(',')+') ปี ' + (year+543)
             }
         )
         monthly.mWaterBill = mWaterBill
+    }else{
+
+        for(let billWater of billWaters){
+            let index = prevMonthWaterNums.indexOf(billWater.month);
+            if(index >= 0){
+                prevMonthWaterNums.splice(index,1)
+            }
+        }
+
+        let monthStrs = [];
+        for(let prevMonthNum of prevMonthWaterNums){
+            let monthStr = moment().month(prevMonthNum-1).format('MMMM');
+            monthStrs.push(monthStr)
+        }
+        if(monthStrs.length > 0){
+            let mWaterBill = [];
+            mWaterBill.push(
+                {
+                    text : 'บันทึกค่าน้ำ',
+                    href : '/manage/bill'
+                },
+                {
+                    text:' ('+monthStrs.join(',')+') ปี ' + (year+543)
+                }
+            )
+            monthly.mWaterBill = mWaterBill
+        }
+        
     }
 
-    if(billElectricPrevMonth.length === 0){
+    if(billElectrics.length === 0){
         let mElectricBill = [];
 
         mElectricBill.push(
@@ -601,10 +636,38 @@ exports.todolist = async (req,res) => {
                 href : '/manage/bill'
             },
             {
-                text:' ('+prevDate.format('MMMM')+') '
+                text:' ('+prevMonthStrs.join(',')+')  ปี ' + (year+543)
             }
         )
         monthly.mElectricBill = mElectricBill
+    }else{
+
+        for(let billElectric of billElectrics){
+            let index = prevMonthElecNums.indexOf(billElectric.month);
+            if(index >= 0){
+                prevMonthElecNums.splice(index,1)
+            }
+        }
+
+        let monthStrs = [];
+        for(let prevMonthNum of prevMonthElecNums){
+            let monthStr = moment().month(prevMonthNum-1).format('MMMM');
+            monthStrs.push(monthStr)
+        }
+        if(monthStrs.length > 0){
+            let mElectricBill = [];
+            mElectricBill.push(
+                {
+                    text : 'บันทึกค่าไฟ',
+                    href : '/manage/bill'
+                },
+                {
+                    text:' ('+monthStrs.join(',')+') ปี ' + (year+543)
+                }
+            )
+            monthly.mElectricBill = mElectricBill
+        }
+        
     }
     //Salary - Everymonth
     let mSalary = [];

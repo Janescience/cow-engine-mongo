@@ -10,7 +10,7 @@ exports.getAll = async (req, res) => {
 
 exports.get = async (req, res) => {
     const id = req.params.id
-    const bill = await Bill.findById(id).exec();;
+    const bill = await Bill.findById(id).exec();
     res.status(200).send({bill});
 };
 
