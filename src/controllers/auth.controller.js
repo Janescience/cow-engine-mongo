@@ -6,14 +6,13 @@ const RefreshToken = db.refreshToken;
 const NotiParam = db.notificationParam;
 const Param = db.param;
 
-var jwt = require("jsonwebtoken");
-var bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
 const Vaccine = require("../models/vaccine.model");
 
 exports.signup = async (req, res) => {
 
     const countF = await Farm.collection.countDocuments();
-    // console.log("farm count : ",countF);
 
     const farm = new Farm({
       code : "F" + String(countF + 1).padStart(4,'0'),
@@ -27,11 +26,9 @@ exports.signup = async (req, res) => {
       farm : farm,
     });
 
-    const farmResp = await farm.save();
-    // console.log("farm saved : ",farmResp);
+    await farm.save();
 
-    const userResp = await user.save();
-    // console.log("user saved : ",userResp);
+    await user.save();
 
     const notiParams = [
       { code : 'REPRO_ESTRUST' ,name : 'การเป็นสัด', before: 7 , after: 7 , farm : farm },
@@ -78,25 +75,23 @@ exports.signin = (req, res) => {
         username: req.body.username
     }).select('+password').exec(async (error,user) => {
         if (!user) {
-          // console.log("Username not found : "+req.body.username)
           return res.status(401).send({ message: "ชื่อผู้ใช้ไม่ถูกต้อง หรือ ไม่มีผู้ใช้ในระบบ กรุณาลองอีกครั้ง" });
         }
   
-        var passwordIsValid = bcrypt.compareSync(
+        let passwordIsValid = bcrypt.compareSync(
           req.body.password,
           user.password
         );
   
         if (!passwordIsValid) {
-          // console.info("Invalid password : "+req.body.username)
           return res.status(401).send({
             accessToken: null,
             message: "รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง"
           });
         }
   
-        var accessToken = jwt.sign({ id: user.farm }, config.secret, {
-          expiresIn: config.jwtExpiration // 24 hours
+        let accessToken = jwt.sign({ id: user.farm }, config.secret, {
+          expiresIn: config.jwtExpiration
         });
 
         const farm = await Farm.findById(user.farm).exec();
@@ -104,8 +99,6 @@ exports.signin = (req, res) => {
         await RefreshToken.deleteMany({user:user._id}).exec();
 
         let refreshToken = await RefreshToken.createToken(user,config.jwtRefreshExpiration);
-
-        // console.log("Signined : "+req.body.username)
 
         res
           .status(200)
@@ -124,8 +117,6 @@ exports.signin = (req, res) => {
 exports.user = async (req,res) => {
     const user = await User.findOne({farm:req.farmId});
     user.farm = await Farm.findOne({_id:req.farmId});
-
-    // console.log("Get user : "+user.username)
     return res.status(200).json({user:user})
 }
 
@@ -133,7 +124,6 @@ exports.refreshToken = async (req, res) => {
   const { refreshToken: requestToken } = req.body;
 
   if (requestToken == null) {
-    // console.log("Refresh Token is required!");
     return res.status(403).json({ message: "Refresh Token is required!" });
   }
 
@@ -141,14 +131,12 @@ exports.refreshToken = async (req, res) => {
 
   if (!refreshToken) {
     res.status(403).json({ message: "Refresh token is not in database!" });
-    // console.log("Refresh token is not in database!");
     return;
   }
 
   if (RefreshToken.verifyExpiration(refreshToken)) {
     RefreshToken.findByIdAndRemove(refreshToken._id, { useFindAndModify: false }).exec();
 
-    // console.log("Refresh token was expired. Please make a new signin request");
     res.status(403).json({
       message: "Refresh token was expired. Please make a new signin request",
     });
