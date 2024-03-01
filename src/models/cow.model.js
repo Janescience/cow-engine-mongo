@@ -57,6 +57,9 @@ const Cow = mongoose.model(
         grade : {
             type : String
         },
+        amount : {
+            type : Number
+        },
         farm:{
             type: mongoose.Schema.Types.ObjectId,
             ref: "farm",
