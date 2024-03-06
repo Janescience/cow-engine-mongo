@@ -61,7 +61,7 @@ const quality = async (id) => {
   }
 
   const profitAmount = incomeSum - expenseSum;
-  const profitPercent = incomeSum <= 0 ? 0 : (profitAmount / incomeSum) * 100;
+  const profitPercent = profitAmount > 0 ? (profitAmount / incomeSum) * 100 : (profitAmount / expenseSum) * 100;
 
   const result = {
     profit: {

@@ -153,7 +153,8 @@ exports.expense = async (req, res) => {
   const filter = req.query;
   filter.farm = req.farmId;
 
-  const [bills, equipments, buildings, maintenances, salaries, foods, heals, protections] = await Promise.all([
+  const [cows, bills, equipments, buildings, maintenances, salaries, foods, heals, protections] = await Promise.all([
+    Cow.find(filter).exec(),
     Bill.find(filter).exec(),
     Equipment.find(filter).exec(),
     Building.find(filter).exec(),
@@ -164,6 +165,7 @@ exports.expense = async (req, res) => {
     Protection.find(filter).exec()
   ]);
 
+  const sumCows = calculateSum(cows);
   const sumBills = calculateSum(bills);
   const sumEquipments = calculateSum(equipments);
   const sumBuildings = calculateSum(buildings);
@@ -178,7 +180,8 @@ exports.expense = async (req, res) => {
       bill: sumBills,
       equipment: sumEquipments,
       building: sumBuildings,
-      maintenance: sumMaintenances
+      maintenance: sumMaintenances,
+      cow: sumCows
     },
     care: {
       heal: sumHeals,
@@ -240,7 +243,7 @@ exports.rawMilkDescSort = async (req,res) => {
         const cow = cows[index];
         const milks = cowRawMilkGroups[key];
         const sumMilk = milks.reduce((sum, milk) => sum + milk.qty, 0);
-        return {cow: {image: cow.image, code: cow.code, name: cow.name}, sumMilk: sumMilk};
+        return {cow: {id: cow._id ,image: cow.image, code: cow.code, name: cow.name}, sumMilk: sumMilk};
     });
 
     const desc = cowMilkSum.sort((a, b) => b.sumMilk - a.sumMilk);//desc
@@ -276,7 +279,7 @@ exports.rawMilkAscSort = async (req,res) => {
         const cow = cows[index];
         const milks = cowRawMilkGroups[key];
         const sumMilk = milks.reduce((sum, milk) => sum + milk.qty, 0);
-        return {cow: {image: cow.image, code: cow.code, name: cow.name}, sumMilk: sumMilk};
+        return {cow: {id: cow._id ,image: cow.image, code: cow.code, name: cow.name}, sumMilk: sumMilk};
     });
 
     const asc = cowMilkSum.sort((a, b) => a.sumMilk - b.sumMilk);//asc

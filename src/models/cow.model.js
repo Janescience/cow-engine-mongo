@@ -58,7 +58,8 @@ const Cow = mongoose.model(
             type : String
         },
         amount : {
-            type : Number
+            type : Number,
+            default : 0
         },
         farm:{
             type: mongoose.Schema.Types.ObjectId,
