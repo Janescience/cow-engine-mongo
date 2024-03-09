@@ -326,8 +326,9 @@ exports.statistics = async (req,res) => {
     const reproduction = {}
     const reproductions = await Reproduction.find(filter).exec();
     reproduction.count = reproductions.length
-    reproduction.success = reproductions.filter(r => r.result === 2).length
-    reproduction.fail = reproductions.filter(r => r.result === 1).length
+    reproduction.success = reproductions.filter(r => r.status === 2 || r.status === 3).length
+    reproduction.fail = reproductions.filter(r => r.status === 4).length
+    reproduction.wait = reproductions.filter(r => r.status === 1).length
     
 
     //Born
@@ -754,5 +755,38 @@ exports.todolist = async (req,res) => {
         monthly,
         notification
     });
-
 }
+
+exports.food = async (req,res) => {
+    const farmId = req.farmId
+    const foods = await Food.find({farm:farmId}).populate('foodDetails').exec();
+    const resultMonths = new Array(12).fill(0);
+    for(let food of foods){
+        let days = new Date(food.year,food.month,0).getDate();
+        let result = {sumAmount:0,sumQty:0}
+        result.sumAmount += food.foodDetails.reduce((sum,item) => sum + item.amount,0) * days;
+        result.sumQty += food.foodDetails.reduce((sum,item) => sum + item.qty,0) * days;
+        resultMonths[food.month-1] = result
+    }
+    const groupCorral = _.groupBy(foods,'corral')
+    const resultCorrals = []
+    for(let key of Object.keys(groupCorral)){
+        const months = groupCorral[key];
+        let food = {sumAmount:0,sumQty:0,avgAmount:0,avgQty:0}
+        food.corral = key
+        food.numCow = months[0].numCow
+        for(let month of months){
+            let days = new Date(month.year,month.month,0).getDate();
+            food.sumAmount += month.foodDetails.reduce((sum,item) => sum + item.amount,0) * days;
+            food.sumQty += month.foodDetails.reduce((sum,item) => sum + item.qty,0) * days;
+        }
+        food.avgAmount = food.sumAmount / months.length ;
+        food.avgQty = food.sumQty / months.length ;
+        food.count = months.length
+
+        resultCorrals.push(food)
+    }
+    res.json({corral:resultCorrals,month:resultMonths});   
+}
+
+
