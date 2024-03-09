@@ -73,7 +73,7 @@ exports.milks = async (req,res) => {
     filter.farm = req.farmId
 
     //Last Year
-    let year = new Date().getFullYear();
+    let year = filter.year ? filter.year : new Date().getFullYear() ;
 
     let start = new Date(year,0,1)
     const startOffset = start.getTimezoneOffset();
@@ -758,8 +758,9 @@ exports.todolist = async (req,res) => {
 }
 
 exports.food = async (req,res) => {
-    const farmId = req.farmId
-    const foods = await Food.find({farm:farmId}).populate('foodDetails').exec();
+    const filter = req.query
+    filter.farm = req.farmId
+    const foods = await Food.find(filter).populate('foodDetails').exec();
     const resultMonths = new Array(12).fill(0);
     for(let food of foods){
         let days = new Date(food.year,food.month,0).getDate();
