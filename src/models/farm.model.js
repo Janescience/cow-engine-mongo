@@ -12,6 +12,10 @@ const Farm = mongoose.model(
             type:String,
             required:true
         },
+        businessDate : {
+            type:Date,
+            required:true
+        },
         lineToken:{
             type:String,
             required:false

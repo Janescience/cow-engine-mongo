@@ -22,6 +22,8 @@ const Vaccine = db.vaccine;
 const { notiService,cowService } = require("../services");
 const Recipe = require("../models/recipe.model");
 const Farm = require("../models/farm.model");
+const { calAge } = require('../utils/age-calculate');
+
 
 exports.cow = async (req,res) => {
     const filter = req.query
@@ -140,6 +142,18 @@ const calculateSum = (items) => {
   return items.reduce((sum, item) => sum + item.amount, 0);
 };
 
+const calculateBillSum = (items) => {
+    return {
+        water : items.filter(b => b.code === 'WATER').reduce((sum, item) => sum + item.amount, 0),
+        electric : items.filter(b => b.code === 'ELECTRIC').reduce((sum, item) => sum + item.amount, 0),
+        accom:items.filter(b => b.code === 'ACCOM').reduce((sum, item) => sum + item.amount, 0),
+        rent:items.filter(b => b.code === 'RENT').reduce((sum, item) => sum + item.amount, 0),
+        internet : items.filter(b => b.code === 'INTERNET').reduce((sum, item) => sum + item.amount, 0),
+        waste : items.filter(b => b.code === 'WASTE').reduce((sum, item) => sum + item.amount, 0),
+        oth : items.filter(b => b.code === 'OTH').reduce((sum, item) => sum + item.amount, 0),
+    };
+  };
+
 const calculateFoodDetailSum = (items) => {
     let sum = 0;
     for(let item of items){
@@ -150,55 +164,96 @@ const calculateFoodDetailSum = (items) => {
 
 
 exports.expense = async (req, res) => {
-  const filter = req.query;
-  filter.farm = req.farmId;
+    const filter = req.query;
+    const filterDate = filter;
+    const filterYear = filter;
 
-  const [cows, bills, equipments, buildings, maintenances, salaries, foods, heals, protections] = await Promise.all([
-    Cow.find(filter).exec(),
-    Bill.find(filter).exec(),
-    Equipment.find(filter).exec(),
-    Building.find(filter).exec(),
-    Maintenance.find(filter).exec(),
-    Salary.find(filter).exec(),
-    Food.find(filter).populate('foodDetails').exec(),
-    Heal.find(filter).exec(),
-    Protection.find(filter).exec()
-  ]);
+    filter.farm = req.farmId;
+    filterYear.farm = req.farmId;
+    filterDate.farm = req.farmId;
 
-  const sumCows = calculateSum(cows);
-  const sumBills = calculateSum(bills);
-  const sumEquipments = calculateSum(equipments);
-  const sumBuildings = calculateSum(buildings);
-  const sumMaintenances = calculateSum(maintenances);
-  const sumSalaries = calculateSum(salaries);
-  const sumFoods = calculateFoodDetailSum(foods);
-  const sumHeals = calculateSum(heals);
-  const sumProtections = calculateSum(protections);
+   
 
-  const expense = {
-    cost: {
-      bill: sumBills,
-      equipment: sumEquipments,
-      building: sumBuildings,
-      maintenance: sumMaintenances,
-      cow: sumCows
-    },
-    care: {
-      heal: sumHeals,
-      protection: sumProtections,
-      food: sumFoods,
-      worker: sumSalaries
-    }
-  };
+    const year = filter.year ? filter.year : new Date().getFullYear();
+    filterYear.year = year
 
-  res.json(expense);
+    const businessDate = new Date(2022,0,1);//Farm.businessDate
+    const businessToday = new Date(filter.year,new Date().getMonth(),new Date().getDate()) 
+    const businessCalYear = calAge(businessDate,businessToday).number < 1 ? 0 : calAge(businessDate,businessToday).number
+
+    let start = new Date(year,0,1)
+    const startOffset = start.getTimezoneOffset();
+    let startDate = new Date(start.getTime() - (startOffset*60*1000))
+
+    let end = new Date(year, 11, 31);
+    const endOffset = end.getTimezoneOffset();
+    let endDate = new Date(end.getTime() - (endOffset*60*1000))
+
+    const date = { $gte : startDate.toISOString().split('T')[0] , $lte : endDate.toISOString().split('T')[0] }
+    filterDate.date = date
+
+
+    const [cows, bills, equipments, buildings, maintenances, salaries, foods, heals, protections] = await Promise.all([
+        Cow.find({farm:req.farmId,adopDate:date}).exec(),
+        Bill.find(filterYear).exec(),
+        Equipment.find({farm:filter.farm}).exec(),
+        Building.find({farm:filter.farm}).exec(),
+        Maintenance.find(filterDate).exec(),
+        Salary.find(filterYear).exec(),
+        Food.find(filterYear).populate('foodDetails').exec(),
+        Heal.find(filterDate).exec(),
+        Protection.find(filterDate).exec()
+    ]);
+
+    const sumCows = calculateSum(cows);
+    const sumBills = calculateBillSum(bills);
+    const sumEquipments = calculateSum(equipments);
+    const sumBuildings = calculateSum(buildings);
+    const sumMaintenances = calculateSum(maintenances);
+    const sumSalaries = calculateSum(salaries);
+    const sumFoods = calculateFoodDetailSum(foods);
+    const sumHeals = calculateSum(heals);
+    const sumProtections = calculateSum(protections);
+
+    const expense = {
+        bill : sumBills,
+        varyCost : {
+            maintenance: sumMaintenances,
+            cow: sumCows
+        },
+        fixedCost: {
+            equipment: sumEquipments/businessCalYear,
+            building: sumBuildings/businessCalYear,
+        },
+        care: {
+            heal: sumHeals,
+            protection: sumProtections,
+            food: sumFoods,
+            worker: sumSalaries
+        },
+        businessCalYear
+    };
+
+    res.json(expense);
 };
 
 exports.income = async (req,res) => {
     const filter = req.query
     filter.farm = req.farmId
 
-    const rawMilks = await Milk.find(filter).populate('milkDetails').exec();
+    const year = filter.year ? filter.year : new Date().getFullYear();
+
+    let start = new Date(year,0,1)
+    const startOffset = start.getTimezoneOffset();
+    let startDate = new Date(start.getTime() - (startOffset*60*1000))
+
+    let end = new Date(year, 11, 31);
+    const endOffset = end.getTimezoneOffset();
+    let endDate = new Date(end.getTime() - (endOffset*60*1000))
+
+    const date = { $gte : startDate.toISOString().split('T')[0] , $lte : endDate.toISOString().split('T')[0] }
+
+    const rawMilks = await Milk.find({farm:filter.farm,date:date}).populate('milkDetails').exec();
     let sumRawMilks = 0;
     for(let rawMilk of rawMilks){
         for(let detail of rawMilk.milkDetails){
@@ -208,7 +263,11 @@ exports.income = async (req,res) => {
 
     //Income
     const income = {
-        rawMilk : sumRawMilks
+        rawMilk : sumRawMilks,
+        pasteuri : 0,
+        dung : 0,
+        cowExport : 0,
+        meat : 0
     }
 
     res.json(income);

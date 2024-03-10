@@ -70,6 +70,6 @@ exports.calAge =  (dob,n) => {
     ageString = age.months + " เดือน";  
 
   ageNumber = age.years + "." + age.months + "." + age.days;
-
-  return {ageString,ageNumber}; 
+  var number = Number(age.years + "." + age.months)
+  return {ageString,ageNumber,number}; 
 }
