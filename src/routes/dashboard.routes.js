@@ -14,8 +14,10 @@ module.exports = function(app) {
   app.get('/dashboard/quality',[authJwt.verifyToken],controller.quality);
   app.get('/dashboard/milks',[authJwt.verifyToken],controller.milks);
   app.get('/dashboard/events',[authJwt.verifyToken],controller.events);
-  app.get('/dashboard/expense',[authJwt.verifyToken],controller.expense);
+  app.get('/dashboard/expense',[authJwt.verifyToken],controller.expenseYear);
+  app.get('/dashboard/expense/all',[authJwt.verifyToken],controller.expenseAll);
   app.get('/dashboard/income',[authJwt.verifyToken],controller.income);
+  app.get('/dashboard/income/all',[authJwt.verifyToken],controller.incomeAll);
   app.get('/dashboard/rawMilkDescSort',[authJwt.verifyToken],controller.rawMilkDescSort);
   app.get('/dashboard/rawMilkAscSort',[authJwt.verifyToken],controller.rawMilkAscSort);
   app.get('/dashboard/corrals',[authJwt.verifyToken],controller.corrals);
