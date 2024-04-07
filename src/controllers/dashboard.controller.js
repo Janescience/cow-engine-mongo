@@ -75,19 +75,17 @@ exports.milks = async (req,res) => {
     filter.farm = req.farmId
 
     //Last Year
-    let year = filter.year ? filter.year : new Date().getFullYear() ;
+    let year = filter.year ? filter.year : moment().year();
 
-    let start = new Date(year,0,1)
-    const startOffset = start.getTimezoneOffset();
-    let startDate = new Date(start.getTime() - (startOffset*60*1000))
+    let start = moment().year(year).startOf('year');
+    let startDate = start.toDate();
 
-    let end = new Date(year, 11, 31);
-    const endOffset = end.getTimezoneOffset();
-    let endDate = new Date(end.getTime() - (endOffset*60*1000))
+    let end = moment().year(year).endOf('year');
+    let endDate = end.toDate();
 
     const milkLast = await Milk.find(
         {   
-            date : { $gte : startDate.toISOString().split('T')[0] , $lte : endDate.toISOString().split('T')[0] },
+            date : { $gte : startDate , $lte : endDate },
             farm : filter.farm
         }
     ).populate('milkDetails');
@@ -142,16 +140,15 @@ const calculateSum = (items) => {
   return items.reduce((sum, item) => sum + item.amount, 0);
 };
 
+const calculateSumByCondition = (items, conditionFn) => 
+  items.filter(conditionFn).reduce((sum, item) => sum + item.amount, 0);
+
 const calculateBillSum = (items) => {
-    return {
-        water : items.filter(b => b.code === 'WATER').reduce((sum, item) => sum + item.amount, 0),
-        electric : items.filter(b => b.code === 'ELECTRIC').reduce((sum, item) => sum + item.amount, 0),
-        accom:items.filter(b => b.code === 'ACCOM').reduce((sum, item) => sum + item.amount, 0),
-        rent:items.filter(b => b.code === 'RENT').reduce((sum, item) => sum + item.amount, 0),
-        internet : items.filter(b => b.code === 'INTERNET').reduce((sum, item) => sum + item.amount, 0),
-        waste : items.filter(b => b.code === 'WASTE').reduce((sum, item) => sum + item.amount, 0),
-        oth : items.filter(b => b.code === 'OTH').reduce((sum, item) => sum + item.amount, 0),
-    };
+    const billCodes = ['WATER', 'ELECTRIC', 'ACCOM', 'RENT', 'INTERNET', 'WASTE', 'OTH'];
+    return billCodes.reduce((acc, code) => ({
+        ...acc,
+        [code.toLowerCase()]: calculateSumByCondition(items, item => item.code === code),
+    }), {});
   };
 
 const calculateFoodDetailSum = (items) => {
@@ -162,137 +159,77 @@ const calculateFoodDetailSum = (items) => {
     return sum
   };
 
-const expenseGroupYear = (items) => {
-    //Bill , Salary 
+const expenseGroupYear = (items,field = 'year',isFood = false) => {
+    const processedItems = field !== 'year' ? items.map(item => ({...item.toObject(), year: moment(item[field]).year()})) : items;
+    
     const result = {}
-    const groupYears = _.groupBy(items,'year');
-    for(let key of Object.keys(groupYears)){
-        const expenses = groupYears[key]
-        result[key] = expenses.reduce((sum,item) => sum + item.amount , 0);
-    }
-    return result
-}
+    const groupYears = _.groupBy(processedItems,'year');
+    Object.keys(groupYears).forEach(year => {
+        const expenses = groupYears[year]
 
-const expenseFoodGroupYear = (items) => {
-    // Food
-    const result = {}
-    const groupYears = _.groupBy(items,'year');
-    for(let key of Object.keys(groupYears)){
-        const expenses = groupYears[key]
-        result[key] = 0
-        for(let expense of expenses){
-            result[key] += expense.foodDetails.reduce((sum,item) => sum + item.amount , 0) * new Date(expense.year,expense.month,0).getDate();
+        if(isFood){
+            result[year] = 
+            expenses.reduce((totalSum, expense) => {
+                const monthlyTotal = expense.foodDetails.reduce((sum, { amount }) => sum + amount, 0);
+                const daysInMonth = new Date(expense.year, expense.month, 0).getDate();
+                return totalSum + (monthlyTotal * daysInMonth);
+            }, 0);
+        } else {
+            result[year] = expenses.reduce((sum, {amount}) => sum + amount, 0);
         }
-    }
+    })
     return result
 }
 
-const expenseGroupDate = (items,field) => {
-    const newItems = []
-    for(let item of items){
-        let itemObj = {...item.toObject()}
-        itemObj.year = moment(item[field]).year()
-        newItems.push(itemObj)
-    }
-
-    const result = {}
-    const groupYears = _.groupBy(newItems,'year');
-    for(let key of Object.keys(groupYears)){
-        const expenses = groupYears[key]
-        result[key] = expenses.reduce((sum,item) => sum + item.amount , 0);
-    }
-    return result
+function aggregateExpenses(items) {
+    return items.reduce((acc, item) => {
+        const sum = expenseGroupYear(item.data,item.field,item.isFood);
+        for (let key of Object.keys(sum)) {
+            acc[key] = (acc[key] || 0) + sum[key];
+            console.log('acc : ',acc)
+        }
+        return acc;
+    }, {});
 }
-
 
 exports.expenseAll = async (req, res) => {
-    const filter = req.query;
-    filter.farm = req.farmId;
-    const [cows, bills, equipments, buildings, maintenances, salaries, foods, heals, protections] = await Promise.all([
-        Cow.find({farm:filter.farm,amount:{ $ne: null }}).exec(),
-        Bill.find(filter).exec(),
-        Equipment.find(filter).exec(),
-        Building.find(filter).exec(),
-        Maintenance.find(filter).exec(),
-        Salary.find(filter).exec(),
-        Food.find(filter).populate('foodDetails').exec(),
-        Heal.find(filter).exec(),
-        Protection.find(filter).exec()
-    ]);
-
-    const sumCow = expenseGroupDate(cows,'adopDate');
-    const sumBill = expenseGroupYear(bills);
-    const sumSalary = expenseGroupYear(salaries);
-    const sumFood = expenseFoodGroupYear(foods);
-    const sumMaintenance = expenseGroupDate(maintenances,'date');
-    const sumHeal = expenseGroupDate(heals,'date');
-    const sumProtection = expenseGroupDate(protections,'date');
-    const sumEquipment = expenseGroupDate(equipments,'startDate');
-    const sumBuilding = expenseGroupDate(buildings);
-  
-    const sumCare = {}
-    for(let key of Object.keys(sumSalary)){
-        sumCare[key] = (sumCare[key] ? sumCare[key] : 0) + sumSalary[key]
-    }
-    for(let key of Object.keys(sumFood)){
-        sumCare[key] = (sumCare[key] ? sumCare[key] : 0) + sumFood[key]
-    }
-    for(let key of Object.keys(sumHeal)){
-        sumCare[key] = (sumCare[key] ? sumCare[key] : 0) + sumHeal[key]
-    }
-    for(let key of Object.keys(sumProtection)){
-        sumCare[key] = (sumCare[key] ? sumCare[key] : 0) + sumProtection[key]
-    }
-
-    const sumCost = {};
-    for(let key of Object.keys(sumMaintenance)){
-        sumCost[key] = (sumCost[key] ? sumCost[key] : 0) + sumMaintenance[key]
-    }
-    for(let key of Object.keys(sumBuilding)){
-        sumCost[key] = (sumCost[key] ? sumCost[key] : 0) + sumBuilding[key]
-    }
-    for(let key of Object.keys(sumEquipment)){
-        sumCost[key] = (sumCost[key] ? sumCost[key] : 0) + sumEquipment[key]
-    }
-    for(let key of Object.keys(sumCow)){
-        sumCost[key] = (sumCost[key] ? sumCost[key] : 0) + sumCow[key]
-    }
+    const filter = { ...req.query, farm: req.farmId };
+    const models = [Cow, Bill, Equipment, Building, Maintenance, Salary, Food, Heal, Protection];
     
-    
+    const data = await Promise.all(models.map(model => {
+        const queryFilter = model === Cow ? { ...filter, 'amount': { $ne: null } } : filter;
+        let query = model.find(queryFilter);
+        if (model === Food) query = query.populate('foodDetails');
+        return query.exec();
+    }));
+    const [cows, bills, equipments, buildings, maintenances, salaries, foods, heals, protections] = data;
+
     const expenseSum = {
-        bill : sumBill,
-        care : sumCare,
-        cost : sumCost
-    }
-
-    const sumCows = calculateSum(cows);
-    const sumBills = calculateBillSum(bills);
-    const sumMaintenances = calculateSum(maintenances);
-    const sumSalaries = calculateSum(salaries);
-    const sumFoods = calculateFoodDetailSum(foods);
-    const sumHeals = calculateSum(heals);
-    const sumProtections = calculateSum(protections);
-    const sumBuildings = calculateSum(buildings);
-    const sumEquipments = calculateSum(equipments);
+        bill: expenseGroupYear(bills),
+        care: aggregateExpenses([{data:salaries}, {data:foods,isFood:true}, {data:heals,field:'date'},{data:protections,field:'date'}]),
+        cost: aggregateExpenses([{data:maintenances,field:'date'},{data:buildings,field:'date'},{data:equipments,field:'startDate'},{data:cows,field:'adopDate'}])
+    };
 
     const expenseDetail = {
-        bill : sumBills,
-        cost : {
-            maintenance: sumMaintenances,
-            cow: sumCows,
-            equipment: sumEquipments,
-            building: sumBuildings,
+        bill: calculateBillSum(bills),
+        cost: {
+            maintenance: calculateSum(maintenances),
+            cow: calculateSum(cows),
+            equipment: calculateSum(equipments),
+            building: calculateSum(buildings),
         },
         care: {
-            heal: sumHeals,
-            protection: sumProtections,
-            food: sumFoods,
-            worker: sumSalaries
+            heal: calculateSum(heals),
+            protection: calculateSum(protections),
+            food: calculateFoodDetailSum(foods),
+            worker: calculateSum(salaries)
         }
     };
 
     res.json({expenseSum,expenseDetail});
-}   
+} 
+
+
 
 exports.expenseYear = async (req, res) => {
     const filter = req.query;
