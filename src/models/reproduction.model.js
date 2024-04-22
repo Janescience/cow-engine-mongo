@@ -7,9 +7,13 @@ const Reproduction = mongoose.model(
             type:Number,
             required:true
         },
-        dad:{
+        remark:{
             type:String,
             required:false
+        },
+        type : {
+            type:String,//F:พ่อพันธุ์, A:ผสมเทียม
+            required:true
         },
         loginDate:{
             type:Date,

@@ -24,4 +24,5 @@ module.exports = function(app) {
   app.get('/dashboard/statistics',[authJwt.verifyToken],controller.statistics);
   app.get('/dashboard/todolist',[authJwt.verifyToken],controller.todolist);
   app.get('/dashboard/food',[authJwt.verifyToken],controller.food);
+  app.get('/dashboard/reproduction',[authJwt.verifyToken],controller.reproduction);
 };
