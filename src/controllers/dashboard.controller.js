@@ -232,38 +232,26 @@ exports.expenseAll = async (req, res) => {
 
 
 exports.expenseYear = async (req, res) => {
-    const filter = req.query;
-    const filterDate = filter;
-    const filterYear = filter;
+    const year = req.query.year || new Date().getFullYear();
 
-    filter.farm = req.farmId;
-    filterYear.farm = req.farmId;
-    filterDate.farm = req.farmId;
-
-    const year = filter.year ? filter.year : new Date().getFullYear();
-    filterYear.year = year
-
-    let start = new Date(year,0,1)
-    const startOffset = start.getTimezoneOffset();
-    let startDate = new Date(start.getTime() - (startOffset*60*1000))
-
-    let end = new Date(year, 11, 31);
-    const endOffset = end.getTimezoneOffset();
-    let endDate = new Date(end.getTime() - (endOffset*60*1000))
-
-    const date = { $gte : startDate.toISOString().split('T')[0] , $lte : endDate.toISOString().split('T')[0] }
-    filterDate.date = date
+    let startDate = new Date(year, 0, 1); // January 1st of the year
+    let endDate = new Date(year, 11, 31); // December 31st of the year
+    const dateFilter = { $gte: startDate, $lte: endDate };
+    
+    const farmId = req.farmId;
+    const baseFilter = { farm: farmId, date: dateFilter };
+    const yearFilter = { farm: farmId, year };
 
     const [cows, bills, equipments, buildings, maintenances, salaries, foods, heals, protections] = await Promise.all([
-        Cow.find({farm:req.farmId,adopDate:date}).exec(),
-        Bill.find(filterYear).exec(),
-        Equipment.find({farm:filter.farm,startDate:date}).exec(),
-        Building.find({farm:filter.farm,date:date}).exec(),
-        Maintenance.find(filterDate).exec(),
-        Salary.find(filterYear).exec(),
-        Food.find(filterYear).populate('foodDetails').exec(),
-        Heal.find(filterDate).exec(),
-        Protection.find(filterDate).exec()
+        Cow.find({farm:req.farmId,adopDate:dateFilter}).exec(),
+        Bill.find(yearFilter).exec(),
+        Equipment.find({farm:farmId,startDate:dateFilter}).exec(),
+        Building.find({farm:farmId,date:dateFilter}).exec(),
+        Maintenance.find(baseFilter).exec(),
+        Salary.find(yearFilter).exec(),
+        Food.find(yearFilter).populate('foodDetails').exec(),
+        Heal.find(baseFilter).exec(),
+        Protection.find(baseFilter).exec()
     ]);
 
     const sumCows = calculateSum(cows);
