@@ -941,4 +941,31 @@ exports.food = async (req,res) => {
     res.json({corral:resultCorrals,month:resultMonths});   
 }
 
+exports.reproduction = async (req,res) => {
+    const filter = { ...req.query, farm: req.farmId };
+    let year = filter.year;
+    let reproductions = [];
+
+    if(year > 0){
+        let start = moment().year(year).startOf('year');
+        let startDate = start.toDate();
+
+        let end = moment().year(year).endOf('year');
+        let endDate = end.toDate();
+
+        reproductions = await Reproduction.find(
+            {   
+                matingDate : { $gte : startDate , $lte : endDate },
+                farm : filter.farm
+            }
+        );
+    }else{
+        reproductions = await Reproduction.find({farm : filter.farm});
+    }
+
+    res.json({reproductions});   
+
+}
+    
+
 
