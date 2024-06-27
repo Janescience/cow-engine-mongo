@@ -26,47 +26,58 @@ exports.create = async (req, res) => {
     const data = req.body;
     data.farm = req.farmId;
 
+    try{
+        if(data.sex == 'F'){ // เพศเมียจะสร้างวัวให้เลย
 
-    if(data.sex === 'F'){ // เพศเมียจะสร้างวัวให้เลย
-
-        const newCow = new Cow({
-            code : 'C' + (parseInt(data.cow.code?.substring(1,4)) + 1),
-            name : data.calf.name,
-            corral : data.calf.corral,
-            birthDate : data.birthDate,
-            adopDate : data.birthDate,
-            status : 4,
-            quality : 4,
-            mom : data.cow.code,
-            farm : data.farm
-        });
-
-        await newCow.save((err, cow) => {
-            if(cow){
-                Birth.updateOne({_id:id},{calf:cow._id}).exec();
-                // console.log("Birth calf id updated.");
+            const newCow = new Cow({
+                code : 'C' + (parseInt(data.cow.code?.substring(1,4)) + 1),
+                name : data.calf.name,
+                corral : data.calf.corral,
+                birthDate : data.birthDate,
+                adopDate : data.birthDate,
+                status : 4,
+                quality : 4,
+                mom : data.cow.code,
+                farm : data.farm
+            });
+    
+            await newCow.save((err, cow) => {
+                if(cow){
+                    Birth.updateOne({_id:id},{calf:cow._id}).exec();
+                }
+                if (err) {
+                    console.error("New cow in birth create error : ",err)
+                    res.status(500).send({ message: err });
+                    return;
+                }
+            })
+        }else if(data.sex == 'M'){ // ถ้าแก้ไขเป็นเพศผู้ จะต้องลบวัวทึ่เคยสร้างตอนเลือกเป็นเพศเมีย
+            const birth = await Birth.findById(id).exec();
+            if(birth.calf){
+                await Cow.deleteOne({_id:birth.calf});
             }
-            if (err) {
-                console.error("New cow in birth create error : ",err)
-                res.status(500).send({ message: err });
-                return;
-            }
-            // console.log("Cow sex female created : ",cow)
-        })
-    }else if(data.sex === 'M'){ // ถ้าแก้ไขเป็นเพศผู้ จะต้องลบวัวทึ่เคยสร้างตอนเลือกเป็นเพศเมีย
-        const birth = await Birth.findById(id).exec();
-        if(birth.calf){
-            await Cow.deleteOne({_id:birth.calf});
+            data.birthDate = null
+            data.sex = null
+            data.overgrown = null
         }
-        data.birthDate = null
-        data.sex = null
-        data.overgrown = null
+        console.log("data before update : ",data);
+
+        const updatedBirth = await Birth.updateOne({_id:id},{
+            status:data.status,
+            birthDate:data.birthDate,
+            sex:data.sex,
+            overgrown:data.overgrown,
+            washDate:data.washDate,
+            drugDate:data.drugDate
+        }).exec();
+        await Reproduct.updateOne({_id:data.reproduction},{status:3}); // ปรับสถานะ คลอดลูกแล้ว
+    
+        res.status(200).send({updatedBirth});
+    }catch(err){
+        console.error('Error : ',err)
+        res.status(500).send({err});
     }
-
-    const updatedBirth = await Birth.updateOne({_id:id},data).exec();
-    await Reproduct.updateOne({_id:data.reproduction},{status:3}); // ปรับสถานะ คลอดลูกแล้ว
-
-    res.status(200).send({updatedBirth});
+    
 };
 
 exports.update = async (req, res) => {

@@ -3,17 +3,8 @@ const mongoose = require("mongoose")
 const Farm = mongoose.model(
     'farm',
     new mongoose.Schema({
-        code:{
-            type:String,
-            required:true,
-            unique:true,
-        },
         name:{
             type:String,
-            required:true
-        },
-        businessDate : {
-            type:Date,
             required:true
         },
         lineToken:{

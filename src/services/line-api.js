@@ -51,7 +51,6 @@ const token =  async (code,username) => {
         return response.data;
     })
     .catch(function (error) {
-        console.error('Error : ',error.response.data.message);
         return error;
     });
 }

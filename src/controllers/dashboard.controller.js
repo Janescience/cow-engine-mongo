@@ -956,7 +956,8 @@ exports.food = async (req,res) => {
 exports.reproduction = async (req,res) => {
     const filter = { ...req.query, farm: req.farmId };
     let year = filter.year;
-    let reproductions = [];
+    let breeders = [],artificials = [];
+    
 
     if(year > 0){
         let start = moment().year(year).startOf('year');
@@ -965,17 +966,29 @@ exports.reproduction = async (req,res) => {
         let end = moment().year(year).endOf('year');
         let endDate = end.toDate();
 
-        reproductions = await Reproduction.find(
+        const dateRange = { $gte : startDate , $lte : endDate };
+
+        breeders = await Reproduction.find(
             {   
-                matingDate : { $gte : startDate , $lte : endDate },
+                matingDate : dateRange,
+                type : 'F',
+                farm : filter.farm
+            }
+        );
+
+        artificials = await Reproduction.find(
+            {   
+                matingDate : dateRange,
+                type : 'A',
                 farm : filter.farm
             }
         );
     }else{
-        reproductions = await Reproduction.find({farm : filter.farm});
+        breeders = await Reproduction.find({farm : filter.farm,type:'F'});
+        artificials = await Reproduction.find({farm : filter.farm,type:'A'});
     }
 
-    res.json({reproductions});   
+    res.json({breeder:breeders,artificial:artificials});   
 
 }
     

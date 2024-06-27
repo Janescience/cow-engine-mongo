@@ -64,6 +64,7 @@ app.use(// for serving Swagger UI static files and displaying the API docs in JS
     swaggerUi.setup(swaggerDocument)
 );
 
+
  // Routes Setup  
 require('./src/routes/auth.routes')(app);
 require('./src/routes/line.routes')(app);

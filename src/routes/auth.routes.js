@@ -21,6 +21,7 @@ module.exports = function(app) {
 
   app.get('/auth/user',[authJwt.verifyToken],controller.user);
 
+
   app.post("/auth/signup",
     [
       verifySignUp.checkDuplicateUsername,

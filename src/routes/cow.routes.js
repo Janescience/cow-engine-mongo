@@ -19,5 +19,5 @@ module.exports = function(app) {
   app.post("/cow",[authJwt.verifyToken,verifyCreate.cowCheckDup,logger],controller.create);
   app.post("/cow/:id",[authJwt.verifyToken,logger],controller.update);
   app.post("/cow/upload/:id",[authJwt.verifyToken,logger],controller.upload);
-  app.delete("/cow",[authJwt.verifyToken],controller.delete);
+  app.delete("/cow/:id",[authJwt.verifyToken],controller.delete);
 };
