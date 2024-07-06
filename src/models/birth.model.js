@@ -53,6 +53,9 @@ const Birth = mongoose.model(
             ref: "cow",
             required:false,
         },
+        reason : {
+            type:String,
+        },
         farm:{
             type: mongoose.Schema.Types.ObjectId,
             ref: "farm",

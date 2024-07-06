@@ -41,14 +41,13 @@ exports.create = async (req, res) => {
                 farm : data.farm
             });
     
-            await newCow.save((err, cow) => {
-                if(cow){
-                    Birth.updateOne({_id:id},{calf:cow._id}).exec();
+            newCow.save((err, cow) => {
+                if (cow) {
+                    Birth.updateOne({ _id: id }, { calf: cow._id }).exec();
                 }
                 if (err) {
-                    console.error("New cow in birth create error : ",err)
+                    console.error("New cow in birth create error : ", err);
                     res.status(500).send({ message: err });
-                    return;
                 }
             })
         }else if(data.sex == 'M'){ // ถ้าแก้ไขเป็นเพศผู้ จะต้องลบวัวทึ่เคยสร้างตอนเลือกเป็นเพศเมีย
@@ -60,7 +59,6 @@ exports.create = async (req, res) => {
             data.sex = null
             data.overgrown = null
         }
-        console.log("data before update : ",data);
 
         const updatedBirth = await Birth.updateOne({_id:id},{
             status:data.status,
@@ -70,8 +68,10 @@ exports.create = async (req, res) => {
             washDate:data.washDate,
             drugDate:data.drugDate
         }).exec();
+        
         await Reproduct.updateOne({_id:data.reproduction},{status:3}); // ปรับสถานะ คลอดลูกแล้ว
-    
+        await Cow.updateOne({_id:data.cow},{status:3}); // ปรับสถานะ โคตัวแม่กลับเป็นโครีดนม
+
         res.status(200).send({updatedBirth});
     }catch(err){
         console.error('Error : ',err)
@@ -80,24 +80,24 @@ exports.create = async (req, res) => {
     
 };
 
-exports.update = async (req, res) => {
-    const id = req.params.id;
-    const data = req.body;
+// exports.update = async (req, res) => {
+//     const id = req.params.id;
+//     const data = req.body;
 
-    if(data.sex === 'M'){ // ถ้าแก้ไขเป็นเพศผู้ จะต้องลบวัวทึ่เคยสร้างตอนเลือกเป็นเพศเมีย
-        const birth = await Birth.findById(id).exec();
-        if(birth.calf){
-            await Cow.deleteOne({_id:birth.calf});
-        }
-        data.birthDate = null
-        data.sex = null
-        data.overgrown = null
-    }
+//     if(data.sex === 'M'){ // ถ้าแก้ไขเป็นเพศผู้ จะต้องลบวัวทึ่เคยสร้างตอนเลือกเป็นเพศเมีย
+//         const birth = await Birth.findById(id).exec();
+//         if(birth.calf){
+//             await Cow.deleteOne({_id:birth.calf});
+//         }
+//         data.birthDate = null
+//         data.sex = null
+//         data.overgrown = null
+//     }
 
-    const updatedBirth = await Birth.updateOne({_id:id},data).exec();
+//     const updatedBirth = await Birth.updateOne({_id:id},data).exec();
 
-    res.status(200).send({updatedBirth});
-};
+//     res.status(200).send({updatedBirth});
+// };
 
 exports.delete = async (req, res) => {
     const id = req.params.id;

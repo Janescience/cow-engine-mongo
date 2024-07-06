@@ -30,7 +30,7 @@ const Cow = mongoose.model(
         weight:{
             type:Number
         },
-        status:{//1:ท้อง,2:นมแห้ง,3:ให้ผลผลืต,4:วัวเด็ก
+        status:{//1:โคท้อง,2:โคดราย,3:โคสาว,4:โคเด็ก,5:โคพักนม
             type:Number,
             required:true
         },
