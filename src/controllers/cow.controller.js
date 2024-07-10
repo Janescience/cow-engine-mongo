@@ -11,7 +11,7 @@ dotenv.config();
 exports.getAll = async (req, res) => {
     const filter = req.query
     filter.farm = req.farmId
-    const cows = await Cow.find(filter).select('_id image code name birthDate status corral quality grade').sort({corral:1}).exec();
+    const cows = await Cow.find(filter).select('_id image code name birthDate status corral quality grade sex').sort({corral:1}).exec();
     res.json({cows});
 };
 

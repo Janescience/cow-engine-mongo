@@ -15,6 +15,6 @@ module.exports = function(app) {
   app.get('/birth',[authJwt.verifyToken],controller.getAll);
   app.get('/birth/:id',[authJwt.verifyToken],controller.get);
   app.post("/birth/:id",[authJwt.verifyToken,logger],controller.create);
-  app.put("/birth/:id",[authJwt.verifyToken,logger],controller.update);
+  // app.put("/birth/:id",[authJwt.verifyToken,logger],controller.update);
   app.delete("/birth/:id",[authJwt.verifyToken],controller.delete);
 };

@@ -27,38 +27,31 @@ exports.create = async (req, res) => {
     data.farm = req.farmId;
 
     try{
-        if(data.sex == 'F'){ // เพศเมียจะสร้างวัวให้เลย
+        const reproduct = await Reproduct.findById(data.reproduction).exec();
+        const newCow = new Cow({
+            code : data.calf.code,
+            name : data.calf.name,
+            corral : data.calf.corral,
+            birthDate : data.birthDate,
+            adopDate : data.birthDate,
+            status : 4,
+            quality : 4,
+            mom : data.cow.code,
+            dad : reproduct.type +"-"+ data.dad,
+            farm : data.farm,
+            sex : data.sex
+        });
 
-            const newCow = new Cow({
-                code : 'C' + (parseInt(data.cow.code?.substring(1,4)) + 1),
-                name : data.calf.name,
-                corral : data.calf.corral,
-                birthDate : data.birthDate,
-                adopDate : data.birthDate,
-                status : 4,
-                quality : 4,
-                mom : data.cow.code,
-                farm : data.farm
-            });
-    
-            newCow.save((err, cow) => {
-                if (cow) {
-                    Birth.updateOne({ _id: id }, { calf: cow._id }).exec();
-                }
-                if (err) {
-                    console.error("New cow in birth create error : ", err);
-                    res.status(500).send({ message: err });
-                }
-            })
-        }else if(data.sex == 'M'){ // ถ้าแก้ไขเป็นเพศผู้ จะต้องลบวัวทึ่เคยสร้างตอนเลือกเป็นเพศเมีย
-            const birth = await Birth.findById(id).exec();
-            if(birth.calf){
-                await Cow.deleteOne({_id:birth.calf});
+        newCow.save((err, cow) => {
+            if (cow) {
+                Birth.updateOne({ _id: id }, { calf: cow._id }).exec();
             }
-            data.birthDate = null
-            data.sex = null
-            data.overgrown = null
-        }
+            if (err) {
+                console.error("New cow in birth create error : ", err);
+                res.status(500).send({ message: err });
+            }
+        })
+        
 
         const updatedBirth = await Birth.updateOne({_id:id},{
             status:data.status,
