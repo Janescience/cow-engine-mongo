@@ -91,6 +91,7 @@ exports.confirm = async (req, res) => {
     })
 
     const notiParam = await NotificationParam.findOne({code:data.vaccine.code,farm:req.farmId}).exec();
+
     if(notiParam != null){
         const noti = new Notification(
             {

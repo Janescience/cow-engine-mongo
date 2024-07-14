@@ -12,6 +12,7 @@ module.exports = function(app) {
   });
 
   app.get('/milking/all',[authJwt.verifyToken,logger],controller.getAll);
+  app.get('/milking/mock',[authJwt.verifyToken,logger],controller.mock);
   app.get('/milking',[authJwt.verifyToken,logger],controller.get);
   app.post("/milking",[authJwt.verifyToken,verifyCreate.milkingCheckDup,logger],controller.create);
   app.put("/milking/:id",[authJwt.verifyToken,logger],controller.update);
