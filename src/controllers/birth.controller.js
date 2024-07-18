@@ -62,8 +62,8 @@ exports.create = async (req, res) => {
             drugDate:data.drugDate
         }).exec();
         
-        await Reproduct.updateOne({_id:data.reproduction},{status:3}); // ปรับสถานะ คลอดลูกแล้ว
-        await Cow.updateOne({_id:data.cow},{status:3}); // ปรับสถานะ โคตัวแม่กลับเป็นโครีดนม
+        await Reproduct.updateOne({_id:data.reproduction},{status:3}); // ปรับสถานะ คลอดลูก
+        await Cow.updateOne({_id:data.cow},{status:3}); // ปรับสถานะ โคท้อง -> โครีดนม
 
         res.status(200).send({updatedBirth});
     }catch(err){

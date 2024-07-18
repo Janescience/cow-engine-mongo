@@ -18,11 +18,20 @@ exports.jobCalGrade = async (req, res) => {
     res.status(200).send("Job Cal Grade Success")
 };
 
+exports.jobCowStatusProcess = async (req, res) => {
+    const filter = req.query
+    if(filter.key == 'dairy-farm-job'){
+        await cowController.updateStatus();
+    }
+    res.status(200).send("Job Cow Status Process Success")
+};
+
 exports.jobAll = async (req, res) => {
     const filter = req.query
     if(filter.key == 'dairy-farm-job'){
         await notiController.notify();
         await cowController.calGrade();
+        await cowController.updateStatus();
     }
     res.status(200).send("Job All Success")
 };

@@ -20,5 +20,6 @@ module.exports = function(app) {
   app.post("/cow/:id",[authJwt.verifyToken,logger],controller.update);
   app.post("/cow/upload/:id",[authJwt.verifyToken,logger],controller.upload);
   app.delete("/cow/:id",[authJwt.verifyToken],controller.delete);
-  app.post("/cow/grade",[authJwt.verifyToken],controller.calGrade);
+  app.get("/cow/grade",[logger],controller.calGrade);
+  app.get("/cow/status",[logger],controller.updateStatus);
 };
