@@ -13,6 +13,7 @@ module.exports = function(app) {
 
   app.get("/job/notify",[logger],controller.jobNotify);
   app.get("/job/grade",[logger],controller.jobCalGrade);
+  app.get("/job/cowStatus",[logger],controller.jobCowStatusProcess);
   app.get("/job",[logger],controller.jobAll);
 };
 
