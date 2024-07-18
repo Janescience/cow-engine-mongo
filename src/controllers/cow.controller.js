@@ -158,17 +158,18 @@ exports.updateStatus = async (req,res) => {
           const sex = cow.sex
 
           if(age >= 8){
+            //โคปลดระวาง (อายุ 8 ปีขึ้นไป)
             textAlert += '\nโค'+cow.name + ' อายุ ' + ageStr + ' ควรปลดระวาง (อัพเดตสถานะในระบบ)';
           }
           
           switch (status) {
             case 4: 
               //โคเด็ก -> โคสาว (6 เดือน)
-              if(age >= 0.6 && sex === 'F'){
+              if(age >= 0.06 && sex === 'F'){
                 await Cow.updateOne({_id:cow._id},{status:6})
                 textAlert += '\nโค'+cow.name + ' เพศเมีย ปรับสถานะเป็น โคสาว (อายุครบ 6 เดือน)';
-
               }
+
               //โคเด็ก -> โคพ่อพันธุ์ วัยผสม (3 ปีขึ้นไป)
               if(age >= 3 && sex === 'M'){
                 await Cow.updateOne({_id:cow._id},{status:7})
@@ -178,12 +179,13 @@ exports.updateStatus = async (req,res) => {
               break;
             case 3:
               //โครีดนม (มาตรฐานควรรีดนมแค่ 10-12 เดือน)
+              //คิดระยะเวลาการรีดนมจาก วันที่คลอด ล่าสุด
               const births = await Birth.find({cow:cow._id,status:'B'}).sort({seq:-1})//desc
               if(births.length > 0){
                 const birthDate = births[0].birthDate
                 const birthAge = calAge(birthDate).number;
                 const birthAgeStr = calAge(birthDate).ageString;
-
+                
                 if(birthAge >= 0.10){
                   textAlert += '\nโค'+cow.name + ' รีดนมมาแล้ว ' + birthAgeStr + ' ควรเข้าระบบสืบพันธุ์';
                 }
@@ -191,9 +193,9 @@ exports.updateStatus = async (req,res) => {
               break;
             case 6:
               //โคสาว
-              //อายุ 1.3 - 2 ปี แนะนำให้ผสมพันธุ์ ถ้าโคยังไม่ได้เข้าระบบสืบพันหรือสืบพันล้มเหลว
+              //อายุ 1.03 - 2 ปี แนะนำให้ผสมพันธุ์ ถ้าโคยังไม่ได้เข้าระบบสืบพันหรือสืบพันล้มเหลว
               const reproducts = await Reproduct.find({cow:cow._id,status:1,farm:id})
-              if((age >= 1.3 && age <= 2) && sex === 'F' && reproducts.length == 0){
+              if((age >= 1.03 && age <= 2) && sex === 'F' && reproducts.length == 0){
                 textAlert += '\nโค'+cow.name + ' อายุ ' + ageStr + ' พร้อมผสมพันธุ์';
               }
               break;
@@ -204,12 +206,13 @@ exports.updateStatus = async (req,res) => {
                 const pregnantAge = calAge(birth.pregnantDate).number
                 const pregnantAgeStr = calAge(birth.pregnantDate).ageString
   
-                if(pregnantAge >= 0.6 && pregnantAge <= 0.7){
+                if(pregnantAge >= 0.06 && pregnantAge <= 0.07){
+                  //โคท้อง 6-7 เดือน แนะนำให้พักนมก่อนคลอด 2-3 เดือน
                   textAlert += '\nโค'+cow.name + ' อายุครรภ์ ' + pregnantAgeStr + ' สามารถพักให้นมได้แล้ว';
                 }
   
-                if(pregnantAge >= 0.9){
-                  textAlert += '\nโค'+cow.name + ' อายุครรภ์ ' + pregnantAgeStr + ' ถึงเวลาคลอดและบันทึกข้อมูลในระบบ';
+                if(pregnantAge >= 0.09){
+                  textAlert += '\nโค'+cow.name + ' อายุครรภ์ ' + pregnantAgeStr + ' ถึงช่วงเวลาคลอด (บันทึกข้อมูลในระบบ)';
                 }
               }
               
@@ -224,6 +227,7 @@ exports.updateStatus = async (req,res) => {
 
       if(textAlert != ""){
         await lineApi.notify(textAlert,'B',id,token,null,'Empty');
+        // console.log(textAlert)
       }else{
         console.log('Farm '+farm.name+' no notification.')
       }
