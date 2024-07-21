@@ -5,10 +5,6 @@ const cors = require("cors")
 const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
 
-const swaggerUi = require('swagger-ui-express');
-const swaggerJsDoc = require('swagger-jsdoc');
-const swaggerDocument = require('./swagger.json');
-
 const path = require('path');
 const fs = require('fs')
 
@@ -58,12 +54,6 @@ app.use(express.json({limit:'50mb'}))
 app.use(express.urlencoded({limit: '50mb', extended:true }))
 app.use(express.static(path.join(__dirname, '/public')))
 app.use(cookieParser())
-app.use(// for serving Swagger UI static files and displaying the API docs in JSON format 
-    '/api-docs',
-    swaggerUi.serve, 
-    swaggerUi.setup(swaggerDocument)
-);
-
 
  // Routes Setup  
 require('./src/routes/auth.routes')(app);

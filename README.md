@@ -9,7 +9,6 @@ Dairy-Farm system backend. Runtime on Node.js.
 - Express.js
 - MongoDB
 - JWT
-- Swagger (Not done yet)
 
 ## Prerequires
 
