@@ -189,6 +189,8 @@ exports.updateStatus = async (req,res) => {
                 if(birthAge >= 0.10){
                   textAlert += '\nโค'+cow.name + ' รีดนมมาแล้ว ' + birthAgeStr + ' ควรเข้าระบบสืบพันธุ์';
                 }
+              }else{
+                textAlert += '\nโค'+cow.name + ' เป็นโครีดนมแต่ไม่เคยมีประวัติการคลอดลูก';
               }
               break;
             case 6:

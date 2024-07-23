@@ -157,7 +157,9 @@ exports.notify = async () => {
         const notis = await Noti.find({ '$or': [{ statusBefore: 'W' }, { statusAfter: 'W' }] }).populate('notificationParam').exec();
         const notiGroupFarms = _.groupBy(notis, 'farm');
 
-        console.log('notification size : ', notis.length);
+        let notiLen = notis.length
+
+        console.log('notification size : ', notiLen);
 
         for (let key of Object.keys(notiGroupFarms)) {
             const notis = notiGroupFarms[key];
@@ -174,7 +176,7 @@ exports.notify = async () => {
             let notiIdAfters = [];
 
             console.log('\n---------------------------------------------------------');
-            console.log('=======> Farm : ' + farm.code + ' - ' + farm.name + ' <=======');
+            console.log('=======> Farm : ' + farm.name + ' <=======');
 
             if (!checkLineToken(farm)) {
                 await notiService.saveLog('Farm value of lineToken is empty', 'B', 'F', null, farm._id, [noti._id]);
@@ -187,8 +189,141 @@ exports.notify = async () => {
 
                 if(notiParam){
 
-                    // console.log('\n##################################################');
-                    // console.log('=======> Notification : ' + notiParam.code + ' - ' + notiParam.name + ' <=======');
+                    const data = await notiService.filterData(notiParam, noti);
+
+                    if (data != null) {
+
+                        const alertToday = notiParam.dueDate;
+                        const numBefore = notiParam.before;
+                        const numAfter = notiParam.after;
+
+                        if (alertToday) {
+                            const dueDate = moment(notiService.filterDueDate(notiParam, data));
+
+                            if (today.isSame(dueDate.startOf('day'))) {
+                                notiIdToday.push(noti._id);
+                                textAlert += '\nเรื่อง : ' + notiParam.name + (!data?.cow?.name ? ' ครั้งที่ ' + data.seq : '');
+                                if(data?.cow?.name)
+                                    textAlert += '\nโค : ' + data.cow.name;
+                                textAlert += '\nครบกำหนด : วันนี้ !!';
+                                textAlert += '\n*******************************';
+                            }
+                        }
+
+                        if (noti.statusBefore === 'W' && numBefore) {
+
+                            const dueDate = moment(notiService.filterDueDate(notiParam, data));
+                            const dueDateBefore = moment(notiService.filterDueDate(notiParam, data)).startOf('day').subtract(numBefore, 'days')
+
+                            if (dueDateBefore.isSame(today)) {
+                                notiIdBefores.push(noti._id);
+                                textAlertBefore += '\nเรื่อง : ' + notiParam.name + (!data?.cow?.name ? ' ครั้งที่ ' + data.seq : '');
+                                if(data?.cow?.name)
+                                    textAlertBefore += '\nโค : ' + data.cow.name;
+                                textAlertBefore += '\nครบกำหนด : ' + moment(dueDate).format('dddd DD MMMM yyyy');
+                                textAlertBefore += '\nระยะเวลา : อีก ' + numBefore + ' วัน ';
+                                textAlertBefore += '\n*******************************';
+                            }
+                        }
+
+                        if (noti.statusAfter === 'W' && numAfter) {
+
+                            const dueDate = moment(notiService.filterDueDate(notiParam, data));
+                            const dueDateAfter = moment(notiService.filterDueDate(notiParam, data)).startOf('day').add(numAfter, 'days')
+
+                            if (dueDateAfter.isSame(today)) {
+                                notiIdAfters.push(noti._id);
+                                textAlertAfter += '\nเรื่อง : ' + notiParam.name + (!data?.cow?.name ? ' ครั้งที่ ' + data.seq : '');
+                                if(data?.cow?.name)
+                                    textAlertAfter += '\nโค : ' + data.cow.name;
+                                textAlertAfter += '\nครบกำหนด : ' + moment(dueDate).format('dddd DD MMMM yyyy');
+                                textAlertAfter += '\nระยะเวลา : ผ่านมาแล้ว ' + numBefore + ' วัน ';
+                                textAlertAfter += '\n*******************************';
+                            }
+                        }
+                    }
+                }
+
+                
+            }
+
+            if (notiIdToday.length > 0) {
+                notiLen -= notiIdToday.length
+                await lineApi.notify(textAlert, 'B', farm._id, farm.lineToken, notiIdToday, 'Today');
+            }
+
+            if (notiIdBefores.length > 0) {
+                notiLen -= notiIdBefores.length
+                await lineApi.notify(textAlertBefore, 'B', farm._id, farm.lineToken, notiIdBefores, 'Before');
+            }
+
+            if (notiIdAfters.length > 0) {
+                notiLen -= notiIdAfters.length
+                await lineApi.notify(textAlertAfter, 'B', farm._id, farm.lineToken, notiIdAfters, 'After');
+            }
+
+            if (notiIdToday.length == 0 && notiIdBefores.length == 0 && notiIdAfters.length == 0) {
+                let retryNum = notiLen > 0 ? '(รายการที่ต้องซ่อม '+notiLen + ' รายการ)' : ''
+                await lineApi.notify('วันนี้ไม่มีรายการแจ้งเตือน'+retryNum, 'B', farm._id, farm.lineToken, [], 'Empty');
+            }
+        }
+        
+        console.log('-------x ' + new Date() + ' x-------')
+        console.log('=======x End schedule line notify x=======')
+    } catch (error) {
+        console.error('Job Line Noti Error : ',error)
+        await lineApi.notify("มีรายการแจ้งเตือนไม่สำเร็จ กรุณาตรวจสอบ", 'B', farmError._id, farmError.lineToken, [], 'Empty');
+        await notiService.saveLog('Job Line Noti Error', 'B', 'F', error+"", farmError._id, [notiError._id]);
+        return;
+    }
+};
+
+
+exports.retry = async () => {
+    let farmError,notiError;
+    try {
+        console.log('=======> Start retry line notify <=======')
+        console.log('-------> ' + new Date() + ' <-------')
+
+        
+        // Add 1 day because cloud server time -7 (UTC) and cron job time is 02.00 AM (Thai)
+        const today = moment(new Date()).startOf('day').add(1, 'days');
+
+        // Timezone on server is UTC 
+        console.log('Date runing : ', today);
+
+        const notis = await Noti.find({ '$or': [{ statusBefore: 'W' }, { statusAfter: 'W' }] }).populate('notificationParam').exec();
+        const notiGroupFarms = _.groupBy(notis, 'farm');
+
+        console.log('notification size : ', notis.length);
+
+        for (let key of Object.keys(notiGroupFarms)) {
+            const notis = notiGroupFarms[key];
+
+            const farm = await Farm.findOne({ _id: key }).exec();
+            farmError = farm
+
+            let textAlert = '\nซ่อมรายการแจ้งเตือน เนื่องจากระบบขัดข้อง\n';
+            let textAlertBefore = '\nซ่อมรายการแจ้งเตือนก่อนครบกำหนด\n';
+            let textAlertAfter = '\nซ่อมรายการแจ้งเตือนหลังครบกำหนด\n';
+
+            let notiIdToday = [];
+            let notiIdBefores = [];
+            let notiIdAfters = [];
+
+            console.log('\n---------------------------------------------------------');
+            console.log('=======> Farm : ' + farm.name + ' <=======');
+
+            if (!checkLineToken(farm)) {
+                await notiService.saveLog('Farm value of lineToken is empty', 'B', 'F', null, farm._id, [noti._id]);
+                continue;
+            }
+
+            for (const noti of notis) {
+                notiError = noti
+                const notiParam = noti.notificationParam;
+
+                if(notiParam){
 
                     const data = await notiService.filterData(notiParam, noti);
 
@@ -199,57 +334,47 @@ exports.notify = async () => {
                         const numAfter = notiParam.after;
 
                         if (alertToday) {
-                            // console.log('\n////// Today //////');
                             const dueDate = moment(notiService.filterDueDate(notiParam, data));
-                            // console.log('dueDate : ', dueDate);
-                            // console.log('alert : ', today.isSame(dueDate.startOf('day')));
 
-                            if (today.isSame(dueDate.startOf('day'))) {
+                            if (today.isAfter(dueDate.startOf('day'))) {
                                 notiIdToday.push(noti._id);
-                                textAlert += '\nเรื่อง : ' + notiParam.name;
-                                textAlert += '\nโค : ' + data.cow.name;
-                                textAlert += '\nครบกำหนด : วันนี้ !!';
-                                textAlert += '\n*******************************';
+                                textAlert += '\nเรื่อง : ' + notiParam.name + (!data?.cow?.name ? ' ครั้งที่ ' + data.seq : '');
+                                if(data?.cow?.name)
+                                    textAlert += '\nโค : ' + data.cow.name;
+                                textAlert += '\nครบกำหนด : ' + moment(dueDate).format('dddd DD MMMM yyyy');
+                                textAlert += '\n*******************************\n';
                             }
                         }
 
                         if (noti.statusBefore === 'W' && numBefore) {
-                            // console.log('\n////// Before //////');
 
                             const dueDate = moment(notiService.filterDueDate(notiParam, data));
                             const dueDateBefore = moment(notiService.filterDueDate(notiParam, data)).startOf('day').subtract(numBefore, 'days')
 
-                            // console.log('dueDate : ', dueDate);
-                            // console.log('dueDateBefore : ', dueDateBefore);
-                            // console.log('alert : ', dueDateBefore.isSame(today));
-
-                            if (dueDateBefore.isSame(today)) {
+                            if (dueDateBefore.isBefore(today)) {
                                 notiIdBefores.push(noti._id);
-                                textAlertBefore += '\nเรื่อง : ' + notiParam.name;
-                                textAlertBefore += '\nโค : ' + data.cow.name;
+                                textAlertBefore += '\nเรื่อง : ' + notiParam.name + ' (ก่อนครบกำหนด) ' + (!data?.cow?.name ? ' ครั้งที่ ' + data.seq : '');
+                                if(data?.cow?.name)
+                                    textAlertBefore += '\nโค : ' + data.cow.name;
                                 textAlertBefore += '\nครบกำหนด : ' + moment(dueDate).format('dddd DD MMMM yyyy');
                                 textAlertBefore += '\nระยะเวลา : อีก ' + numBefore + ' วัน ';
-                                textAlertBefore += '\n*******************************';
+                                textAlertBefore += '\n*******************************\n';
                             }
                         }
 
                         if (noti.statusAfter === 'W' && numAfter) {
-                            // console.log('////// After //////');
 
                             const dueDate = moment(notiService.filterDueDate(notiParam, data));
                             const dueDateAfter = moment(notiService.filterDueDate(notiParam, data)).startOf('day').add(numAfter, 'days')
 
-                            // console.log('dueDate : ', dueDate);
-                            // console.log('dueDateAfter : ', dueDateAfter);
-                            // console.log('alert : ', dueDateAfter.isSame(today));
-
-                            if (dueDateAfter.isSame(today)) {
+                            if (dueDateAfter.isBefore(today)) {
                                 notiIdAfters.push(noti._id);
-                                textAlertAfter += '\nเรื่อง : ' + notiParam.name;
-                                textAlertAfter += '\nโค : ' + data.cow.name;
+                                textAlertAfter += '\nเรื่อง : ' + notiParam.name + ' (หลังครบกำหนด) ' + (!data?.cow?.name ? ' ครั้งที่ ' + data.seq : '');
+                                if(data?.cow?.name)
+                                    textAlertAfter += '\nโค : ' + data.cow.name;
                                 textAlertAfter += '\nครบกำหนด : ' + moment(dueDate).format('dddd DD MMMM yyyy');
                                 textAlertAfter += '\nระยะเวลา : ผ่านมาแล้ว ' + numBefore + ' วัน ';
-                                textAlertAfter += '\n*******************************';
+                                textAlertAfter += '\n*******************************\n';
                             }
                         }
                     }
@@ -270,16 +395,21 @@ exports.notify = async () => {
                 await lineApi.notify(textAlertAfter, 'B', farm._id, farm.lineToken, notiIdAfters, 'After');
             }
 
+            // console.log('notify =====> \n',textAlert)
+        
+
             if (notiIdToday.length == 0 && notiIdBefores.length == 0 && notiIdAfters.length == 0) {
-                await lineApi.notify('วันนี้ไม่มีรายการแจ้งเตือน', 'B', farm._id, farm.lineToken, [], 'Empty');
+                await lineApi.notify('[Retry] ไม่มีรายการแจ้งเตือน', 'B', farm._id, farm.lineToken, [], 'Empty');
+                // console.log('all noti empty')
             }
         }
         
         console.log('-------x ' + new Date() + ' x-------')
-        console.log('=======x End schedule line notify x=======')
+        console.log('=======x End retry line notify x=======')
     } catch (error) {
-        console.error('Job Line Noti Error : ',error)
-        await notiService.saveLog('Job Line Noti Error', 'B', 'F', error+"", farmError._id, [notiError._id]);
+        console.error('Retry Line Noti Error : ',error)
+        await lineApi.notify("[Retry] ซ่อมรายการแจ้งเตือนไม่สำเร็จ กรุณาตรวจสอบ", 'B', farmError._id, farmError.lineToken, [], 'Empty');
+        await notiService.saveLog('Retry Line Noti Error', 'B', 'F', error+"", farmError._id, [notiError._id]);
         return;
     }
 };
