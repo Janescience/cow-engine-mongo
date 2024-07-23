@@ -154,7 +154,7 @@ exports.notify = async () => {
         // Timezone on server is UTC 
         console.log('today : ', today);
 
-        const notis = await Noti.find({ '$or': [{ statusBefore: 'W' }, { statusAfter: 'W' }] }).populate('notificationParam').exec();
+        const notis = await Noti.find({ '$or': [{ statusBefore: 'W' },{ statusDueDate: 'W' }, { statusAfter: 'W' }] }).populate('notificationParam').exec();
         const notiGroupFarms = _.groupBy(notis, 'farm');
 
         let notiLen = notis.length
@@ -292,7 +292,7 @@ exports.retry = async () => {
         // Timezone on server is UTC 
         console.log('Date runing : ', today);
 
-        const notis = await Noti.find({ '$or': [{ statusBefore: 'W' }, { statusAfter: 'W' }] }).populate('notificationParam').exec();
+        const notis = await Noti.find({ '$or': [{ statusBefore: 'W' },{ statusDueDate: 'W' }, { statusAfter: 'W' }] }).populate('notificationParam').exec();
         const notiGroupFarms = _.groupBy(notis, 'farm');
 
         console.log('notification size : ', notis.length);
@@ -385,22 +385,22 @@ exports.retry = async () => {
 
             if (notiIdToday.length > 0) {
                 await lineApi.notify(textAlert, 'B', farm._id, farm.lineToken, notiIdToday, 'Today');
+                console.log('Notify today success')
             }
 
             if (notiIdBefores.length > 0) {
                 await lineApi.notify(textAlertBefore, 'B', farm._id, farm.lineToken, notiIdBefores, 'Before');
+                console.log('Notify before success')
             }
 
             if (notiIdAfters.length > 0) {
                 await lineApi.notify(textAlertAfter, 'B', farm._id, farm.lineToken, notiIdAfters, 'After');
+                console.log('Notify after success')
             }
-
-            // console.log('notify =====> \n',textAlert)
         
-
             if (notiIdToday.length == 0 && notiIdBefores.length == 0 && notiIdAfters.length == 0) {
                 await lineApi.notify('[Retry] ไม่มีรายการแจ้งเตือน', 'B', farm._id, farm.lineToken, [], 'Empty');
-                // console.log('all noti empty')
+                console.log('all noti empty')
             }
         }
         

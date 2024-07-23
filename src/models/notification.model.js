@@ -7,6 +7,10 @@ const Notification = mongoose.model(
             type:String,
             required:true
         },
+        statusDueDate:{ // W : Wait , S : Success , N : Not Alert
+            type:String,
+            default:'W'
+        },
         statusAfter:{ // W : Wait , S : Success , N : Not Alert
             type:String,
             required:true

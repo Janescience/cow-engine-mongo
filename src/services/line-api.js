@@ -78,6 +78,10 @@ const notify = async (text,type,farm,token,notiIds,time) => {
                 if(time !== 'Empty'){
                     await notiService.saveLog(text,type,'S',respMsg,farm,notiIds);
                 }
+
+                if(time === 'Today'){
+                    await notiService.updateStatusDueDate(notiIds,'S');
+                }
     
                 if(time === 'Before'){
                     await notiService.updateStatusBefore(notiIds,'S');

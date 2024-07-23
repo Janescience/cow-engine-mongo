@@ -29,6 +29,10 @@ const updateStatusAfter =  async (notiIds,status) => {
     await Notification.updateMany({_id:{'$in':notiIds}},{statusAfter : status}).exec();
 }
 
+const updateStatusDueDate =  async (notiIds,status) => {
+    await Notification.updateMany({_id:{'$in':notiIds}},{statusDueDate : status}).exec();
+}
+
 const filterDueDate = (notiParam,data) => {
 
     if(notiParam.code === 'REPRO_ESTRUST'){
@@ -71,6 +75,7 @@ const notification = {
     saveLog,
     updateStatusBefore,
     updateStatusAfter,
+    updateStatusDueDate,
     filterDueDate,
     filterData
 };
