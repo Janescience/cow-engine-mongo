@@ -11,6 +11,7 @@ dotenv.config();
 
 const url_line_notification = "https://notify-api.line.me/api/notify";
 const url_line_token = "https://notify-bot.line.me/oauth/token";
+const MAX_MESSAGE_LENGTH = 1000;
 
 //Get Token
 const token =  async (code,username) => {
@@ -57,38 +58,62 @@ const token =  async (code,username) => {
 
 //Notification to Line
 const notify = async (text,type,farm,token,notiIds,time) => {
-    await axios.post(
-        url_line_notification,
-        qs.stringify({message:text}),
-        {
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Authorization' : 'Bearer ' + token
-            }
-        },
-        ).then(async function (response) {
-            // console.log('Notify Successfully : ',response.data);
+    const messageChunks = chunkMessage(text, MAX_MESSAGE_LENGTH);
+    for (const chunk of messageChunks) {
+        const data = new URLSearchParams({ message: chunk });
+        await axios.post(
+            url_line_notification,
+            data,
+            {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Authorization' : 'Bearer ' + token
+                }
+            },
+            ).then(async function (response) {
+                // console.log('Notify Successfully : ',response.data);
+    
+                const respMsg = 'status='+response.data.status + ',message='+response.data.message;
+    
+                if(time !== 'Empty'){
+                    await notiService.saveLog(text,type,'S',respMsg,farm,notiIds);
+                }
+    
+                if(time === 'Before'){
+                    await notiService.updateStatusBefore(notiIds,'S');
+                }
+    
+                if(time === 'After'){
+                    await notiService.updateStatusAfter(notiIds,'S');
+                }
+    
+                return response.data;
+            })
+            .catch(async function (error) {
+                console.error('Notification Error : ',error);
+                await notiService.saveLog(text,type,'F',JSON.stringify(error),farm,notiIds);
+            });
+    }
+    
+}
 
-            const respMsg = 'status='+response.data.status + ',message='+response.data.message;
+/**
+ * Split a message into chunks of a specified maximum length.
+ * @param {string} message - The message to split.
+ * @param {number} maxLength - The maximum length of each chunk.
+ * @returns {string[]} - An array of message chunks.
+ */
+function chunkMessage(message, maxLength) {
+    const chunks = [];
+    let startIndex = 0;
 
-            if(time !== 'Empty'){
-                await notiService.saveLog(text,type,'S',respMsg,farm,notiIds);
-            }
+    while (startIndex < message.length) {
+        const chunk = message.slice(startIndex, startIndex + maxLength);
+        chunks.push(chunk);
+        startIndex += maxLength;
+    }
 
-            if(time === 'Before'){
-                await notiService.updateStatusBefore(notiIds,'S');
-            }
-
-            if(time === 'After'){
-                await notiService.updateStatusAfter(notiIds,'S');
-            }
-
-            return response.data;
-        })
-        .catch(async function (error) {
-            console.error('Notification Error : ',error);
-            await notiService.saveLog(text,type,'F',JSON.stringify(error),farm,notiIds);
-        });
+    return chunks;
 }
 
 const lineNotify = {
