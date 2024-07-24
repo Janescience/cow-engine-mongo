@@ -239,38 +239,38 @@ exports.updateStatus = async (req,res) => {
           }
         }
         if(txtRetired != ""){
-          // await lineApi.notify(titleRetired + txtRetired,'B',id,token,null,'Empty');
-          console.log(titleRetired + txtRetired)
+          await lineApi.notify(titleRetired + txtRetired,'B',id,token,null,'Empty');
+          // console.log(titleRetired + txtRetired)
           console.log("Notify list cow retired success.")
         }
         if(txtUpdateStatus != ""){
-          // await lineApi.notify(titleUpdateStatus + txtUpdateStatus,'B',id,token,null,'Empty');
-          console.log(titleUpdateStatus + txtUpdateStatus)
+          await lineApi.notify(titleUpdateStatus + txtUpdateStatus,'B',id,token,null,'Empty');
+          // console.log(titleUpdateStatus + txtUpdateStatus)
           console.log("Notify list cow updated status success.")
         }
         if(txtReproduct != ""){
-          // await lineApi.notify(titleReproduct + txtReproduct,'B',id,token,null,'Empty');
-          console.log(titleReproduct + txtReproduct)
+          await lineApi.notify(titleReproduct + txtReproduct,'B',id,token,null,'Empty');
+          // console.log(titleReproduct + txtReproduct)
           console.log("Notify list cow recommend reproduct success.")
         }
         if(txtNoBirth != ""){
-          // await lineApi.notify(titleNoBirth + txtNoBirth,'B',id,token,null,'Empty');
-          console.log(titleNoBirth + txtNoBirth)
+          await lineApi.notify(titleNoBirth + txtNoBirth,'B',id,token,null,'Empty');
+          // console.log(titleNoBirth + txtNoBirth)
           console.log("Notify list cow milking but no birth success.")
         }
         if(txtMatingReady != ""){
-          // await lineApi.notify(titleMatingReady + txtMatingReady,'B',id,token,null,'Empty');
-          console.log(titleMatingReady + txtMatingReady)
+          await lineApi.notify(titleMatingReady + txtMatingReady,'B',id,token,null,'Empty');
+          // console.log(titleMatingReady + txtMatingReady)
           console.log("Notify list cow mating ready success.")
         }
         if(txtDry != ""){
-          // await lineApi.notify(titleDry + txtDry,'B',id,token,null,'Empty');
-          console.log(titleDry + txtDry)
+          await lineApi.notify(titleDry + txtDry,'B',id,token,null,'Empty');
+          // console.log(titleDry + txtDry)
           console.log("Notify list cow dry success.")
         }
         if(txtNearBirth != ""){
-          // await lineApi.notify(titleNearBirth + txtNearBirth,'B',id,token,null,'Empty');
-          console.log(titleNearBirth + txtNearBirth)
+          await lineApi.notify(titleNearBirth + txtNearBirth,'B',id,token,null,'Empty');
+          // console.log(titleNearBirth + txtNearBirth)
           console.log("Notify list cow birth timing success.")
         }
       }else{
