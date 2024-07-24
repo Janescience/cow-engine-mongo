@@ -142,7 +142,22 @@ exports.updateStatus = async (req,res) => {
   try{
     const farms = await Farm.find()
     for(let farm of farms){
-      let textAlert = "";
+      let titleRetired = "***** รายการโคควรปลดระวาง *****";
+      let titleUpdateStatus = "***** รายการโคปรับสถานะ *****"
+      let titleReproduct = "***** รายการโครีดนมควรเข้าระบบสืบพันธุ์ *****"
+      let titleNoBirth = "***** รายการโครีดนมแต่ไม่มีประวัติการคลอดลูก *****"
+      let titleMatingReady = "***** รายการโคสาวพร้อมผสมพันธุ์ *****"
+      let titleDry = "***** รายการโคควรพักให้นม *****"
+      let titleNearBirth = "***** รายการโคถึงเวลาคลอด *****"
+
+      let txtRetired = ""
+      let txtUpdateStatus = ""
+      let txtReproduct = ""
+      let txtNoBirth = ""
+      let txtMatingReady = ""
+      let txtDry = ""
+      let txtNearBirth = ""
+
 
       const id = farm._id;
       const token = farm.lineToken;
@@ -159,21 +174,21 @@ exports.updateStatus = async (req,res) => {
 
           if(age >= 8){
             //โคปลดระวาง (อายุ 8 ปีขึ้นไป)
-            textAlert += '\nโค'+cow.name + ' อายุ ' + ageStr + ' ควรปลดระวาง (อัพเดตสถานะในระบบ)';
+            txtRetired += '\n' + cow.name + ' อายุ ' + ageStr;
           }
-          
+        
           switch (status) {
             case 4: 
               //โคเด็ก -> โคสาว (6 เดือน)
               if(age >= 0.06 && sex === 'F'){
                 await Cow.updateOne({_id:cow._id},{status:6})
-                textAlert += '\nโค'+cow.name + ' เพศเมีย ปรับสถานะเป็น โคสาว (อายุครบ 6 เดือน)';
+                txtUpdateStatus += '\n'+cow.name + ' ตัวเมีย (โคเด็ก -> โคสาว)';
               }
 
               //โคเด็ก -> โคพ่อพันธุ์ วัยผสม (3 ปีขึ้นไป)
               if(age >= 3 && sex === 'M'){
                 await Cow.updateOne({_id:cow._id},{status:7})
-                textAlert += '\nโค'+cow.name + ' เพศผู้ ปรับสถานะเป็น โคพ่อพันธุ์ (วัยผสม)';
+                txtUpdateStatus += '\n'+cow.name + ' ตัวผู้ (โคเด็ก -> โคพ่อพันธุ์)';
 
               }
               break;
@@ -187,10 +202,10 @@ exports.updateStatus = async (req,res) => {
                 const birthAgeStr = calAge(birthDate).ageString;
                 
                 if(birthAge >= 0.10){
-                  textAlert += '\nโค'+cow.name + ' รีดนมมาแล้ว ' + birthAgeStr + ' ควรเข้าระบบสืบพันธุ์';
+                  txtReproduct += '\n'+cow.name + ' รีดนมเป็นเวลา ' + birthAgeStr;
                 }
               }else{
-                textAlert += '\nโค'+cow.name + ' เป็นโครีดนมแต่ไม่เคยมีประวัติการคลอดลูก';
+                txtNoBirth += '\n'+cow.name;
               }
               break;
             case 6:
@@ -198,7 +213,7 @@ exports.updateStatus = async (req,res) => {
               //อายุ 1.03 - 2 ปี แนะนำให้ผสมพันธุ์ ถ้าโคยังไม่ได้เข้าระบบสืบพันหรือสืบพันล้มเหลว
               const reproducts = await Reproduct.find({cow:cow._id,status:1,farm:id})
               if((age >= 1.03 && age <= 2) && sex === 'F' && reproducts.length == 0){
-                textAlert += '\nโค'+cow.name + ' อายุ ' + ageStr + ' พร้อมผสมพันธุ์';
+                txtMatingReady += '\n'+cow.name + ' อายุ ' + ageStr;
               }
               break;
             case 1:
@@ -210,11 +225,11 @@ exports.updateStatus = async (req,res) => {
   
                 if(pregnantAge >= 0.06 && pregnantAge <= 0.07){
                   //โคท้อง 6-7 เดือน แนะนำให้พักนมก่อนคลอด 2-3 เดือน
-                  textAlert += '\nโค'+cow.name + ' อายุครรภ์ ' + pregnantAgeStr + ' สามารถพักให้นมได้แล้ว';
+                  txtDry += '\nโค'+cow.name + ' อายุครรภ์ ' + pregnantAgeStr ;
                 }
   
                 if(pregnantAge >= 0.09){
-                  textAlert += '\nโค'+cow.name + ' อายุครรภ์ ' + pregnantAgeStr + ' ถึงช่วงเวลาคลอด (บันทึกข้อมูลในระบบ)';
+                  txtNearBirth += '\nโค'+cow.name + ' อายุครรภ์ ' + pregnantAgeStr ;
                 }
               }
               
@@ -223,15 +238,43 @@ exports.updateStatus = async (req,res) => {
               break;
           }
         }
+        if(txtRetired != ""){
+          // await lineApi.notify(titleRetired + txtRetired,'B',id,token,null,'Empty');
+          console.log(titleRetired + txtRetired)
+          console.log("Notify list cow retired success.")
+        }
+        if(txtUpdateStatus != ""){
+          // await lineApi.notify(titleUpdateStatus + txtUpdateStatus,'B',id,token,null,'Empty');
+          console.log(titleUpdateStatus + txtUpdateStatus)
+          console.log("Notify list cow updated status success.")
+        }
+        if(txtReproduct != ""){
+          // await lineApi.notify(titleReproduct + txtReproduct,'B',id,token,null,'Empty');
+          console.log(titleReproduct + txtReproduct)
+          console.log("Notify list cow recommend reproduct success.")
+        }
+        if(txtNoBirth != ""){
+          // await lineApi.notify(titleNoBirth + txtNoBirth,'B',id,token,null,'Empty');
+          console.log(titleNoBirth + txtNoBirth)
+          console.log("Notify list cow milking but no birth success.")
+        }
+        if(txtMatingReady != ""){
+          // await lineApi.notify(titleMatingReady + txtMatingReady,'B',id,token,null,'Empty');
+          console.log(titleMatingReady + txtMatingReady)
+          console.log("Notify list cow mating ready success.")
+        }
+        if(txtDry != ""){
+          // await lineApi.notify(titleDry + txtDry,'B',id,token,null,'Empty');
+          console.log(titleDry + txtDry)
+          console.log("Notify list cow dry success.")
+        }
+        if(txtNearBirth != ""){
+          // await lineApi.notify(titleNearBirth + txtNearBirth,'B',id,token,null,'Empty');
+          console.log(titleNearBirth + txtNearBirth)
+          console.log("Notify list cow birth timing success.")
+        }
       }else{
         console.log('Farm '+farm.name+' no line token.')
-      }
-
-      if(textAlert != ""){
-        await lineApi.notify(textAlert,'B',id,token,null,'Empty');
-        // console.log(textAlert)
-      }else{
-        console.log('Farm '+farm.name+' no notification.')
       }
     }
     res.status(200).send("Cow Status Process Success")

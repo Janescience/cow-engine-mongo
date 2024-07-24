@@ -197,7 +197,7 @@ exports.notify = async () => {
                         const numBefore = notiParam.before;
                         const numAfter = notiParam.after;
 
-                        if (alertToday) {
+                        if (noti.statusDueDate === 'W' && alertToday) {
                             const dueDate = moment(notiService.filterDueDate(notiParam, data));
 
                             if (today.isSame(dueDate.startOf('day'))) {
@@ -333,7 +333,7 @@ exports.retry = async () => {
                         const numBefore = notiParam.before;
                         const numAfter = notiParam.after;
 
-                        if (alertToday) {
+                        if (noti.statusDueDate === 'W' && alertToday) {
                             const dueDate = moment(notiService.filterDueDate(notiParam, data));
 
                             if (today.isAfter(dueDate.startOf('day'))) {
