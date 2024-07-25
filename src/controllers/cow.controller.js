@@ -281,7 +281,7 @@ exports.updateStatus = async (req,res) => {
 
   } catch (error) {
       console.error('Error : ',error)
-      // await notiService.saveLog('Job Cow Update Status', 'B', 'F', error+"", null, null);
+      await notiService.saveLog('Job Cow Update Status', 'B', 'F', error+"", null, null);
       return;
   }
 }
