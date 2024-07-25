@@ -119,7 +119,7 @@ exports.calGrade = async (req,res) => {
 
     console.log('-------x ' + new Date() + ' x-------')
     console.log('=======x End schedule calculate cow grade x=======')
-    res.status(200).send("Cal Grade Success")
+    // res.status(200).send("Cal Grade Success")
   } catch (error) {
       console.error('Job Cal Grade Error : ',error)
       await notiService.saveLog('Job Cal Grade Error', 'B', 'F', error+"", null, [cowError._id]);
@@ -277,7 +277,7 @@ exports.updateStatus = async (req,res) => {
         console.log('Farm '+farm.name+' no line token.')
       }
     }
-    res.status(200).send("Cow Status Process Success")
+    // res.status(200).send("Cow Status Process Success")
 
   } catch (error) {
       console.error('Error : ',error)
