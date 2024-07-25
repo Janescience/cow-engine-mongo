@@ -142,13 +142,13 @@ exports.updateStatus = async (req,res) => {
   try{
     const farms = await Farm.find()
     for(let farm of farms){
-      let titleRetired = "***** รายการโคควรปลดระวาง *****";
-      let titleUpdateStatus = "***** รายการโคปรับสถานะ *****"
-      let titleReproduct = "***** รายการโครีดนมควรเข้าระบบสืบพันธุ์ *****"
-      let titleNoBirth = "***** รายการโครีดนมแต่ไม่มีประวัติการคลอดลูก *****"
-      let titleMatingReady = "***** รายการโคสาวพร้อมผสมพันธุ์ *****"
-      let titleDry = "***** รายการโคควรพักให้นม *****"
-      let titleNearBirth = "***** รายการโคถึงเวลาคลอด *****"
+      let titleRetired = "\n>>>> รายการโคควรปลดระวาง";
+      let titleUpdateStatus = "\n>>>> รายการโคปรับสถานะ"
+      let titleReproduct = "\n>>>> รายการโครีดนมควรเข้าระบบสืบพันธุ์"
+      let titleNoBirth = "\n>>>> รายการโครีดนมแต่ไม่มีประวัติการคลอดลูก"
+      let titleMatingReady = "\n>>>> รายการโคสาวพร้อมผสมพันธุ์"
+      let titleDry = "\n>>>> รายการโคควรพักให้นม"
+      let titleNearBirth = "\n>>>> รายการโคถึงเวลาคลอด"
 
       let txtRetired = ""
       let txtUpdateStatus = ""
@@ -225,11 +225,11 @@ exports.updateStatus = async (req,res) => {
   
                 if(pregnantAge >= 0.06 && pregnantAge <= 0.07){
                   //โคท้อง 6-7 เดือน แนะนำให้พักนมก่อนคลอด 2-3 เดือน
-                  txtDry += '\nโค'+cow.name + ' อายุครรภ์ ' + pregnantAgeStr ;
+                  txtDry += '\n'+cow.name + ' อายุครรภ์ ' + pregnantAgeStr ;
                 }
   
                 if(pregnantAge >= 0.09){
-                  txtNearBirth += '\nโค'+cow.name + ' อายุครรภ์ ' + pregnantAgeStr ;
+                  txtNearBirth += '\n'+cow.name + ' อายุครรภ์ ' + pregnantAgeStr ;
                 }
               }
               
